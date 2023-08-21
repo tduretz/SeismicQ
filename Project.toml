@@ -1,0 +1,4 @@
+name = "SeismicQ"
+uuid = "79c6918d-a739-464c-a7e6-57d34826522c"
+authors = ["tduretz <duretz@uni-frankfurt.de>"]
+version = "0.1.0"
