@@ -4,7 +4,7 @@
 Compute the Ricker function for t, t₀ and 𝑓₀.
 
 ```math    
-f = (1.0 - 2.0 * (\pi 𝑓₀ (t - t₀))^2) \exp(-π^2 𝑓₀^2 (t - t₀)^2)
+f = (1.0 - 2.0 (\pi 𝑓₀ (t - t₀))^2) \exp(-π^2 𝑓₀^2 (t - t₀)^2)
 ```
 
 # Examples
