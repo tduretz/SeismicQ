@@ -5,4 +5,7 @@
 ## Function Documentation
 ```@docs
 Ricker
+Spec
+ComputeQgraph
+Getfreq
 ```
