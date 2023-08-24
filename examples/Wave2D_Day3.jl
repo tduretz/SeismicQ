@@ -156,7 +156,7 @@ function MainSource()
                                     *((τ.i.xy[2:end,2:end-1]-τ.i.xy[1:end-1,2:end-1])/Δ.x
                                     + (τ.j.yy[2:end-1,2:end]-τ.j.yy[2:end-1,1:end-1])/Δ.y 
                                     - (P.j[2:end-1,2:end]-P.j[2:end-1,1:end-1])/Δ.y 
-                                    - 0.0*Xf_ext.c[2:end-1,2:end-1]))   
+                                    - 0.0*f_ext.c[2:end-1,2:end-1]))   
        
     
     #     # Absorbing boundary Cerjean et al. (1985)
