@@ -34,13 +34,13 @@ end
 
 Coefs[1]=1
 
-iCoefficient = 1
+global iCo=1
     
 for i in 1:numOrder
     @show denominator=factorial(i)
     for j in 1:i+1
-        iCoefficient += 1
-        Coefs[iCoefficient]=PascalCoefs[j,i] // denominator
+        @show iCo += 1
+        Coefs[iCo]=PascalCoefs[j,i] // denominator
     end
 end
 @show Coefs
