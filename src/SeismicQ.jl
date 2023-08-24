@@ -3,10 +3,10 @@ module SeismicQ
 include("Sources.jl")
 export Ricker
 
-include("spec.jl")
-export getfreq,spec,compute_qgraph
+include("Spec.jl")
+export Getfreq,Spec,ComputeQgraph
 
-include("gen_fake_data.jl")
-export gen_matrix
+include("GenFakeData.jl")
+export GenMatrix
 
 end # module SeismicQ

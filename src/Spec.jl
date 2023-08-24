@@ -1,11 +1,11 @@
 using FFTW
 
-function getfreq(dt,Nt)
+function Getfreq(dt,Nt)
     f=[1/(Nt*dt)*i for i=1:Nt]
     return f
 end
 
-function spec(trace,t0,dt,Nt,tp,ts,Δph)
+function Spec(trace,t0,dt,Nt,tp,ts,Δph)
     
     # define all indexes for P and S phases
     iP=trunc(Int,(tp+t0)/dt)
@@ -59,7 +59,7 @@ function spec(trace,t0,dt,Nt,tp,ts,Δph)
     return Vec2dP,Vec2dS,frequP,frequS
 end
 
-function compute_qgraph(amp1,amp2,freq,index,d1,d2,V)
+function ComputeQgraph(amp1,amp2,freq,index,d1,d2,V)
 
     x=zeros(length(index))
     y=zeros(length(index))

@@ -3,7 +3,7 @@
 
 using SeismicQ, Plots, SpecialFunctions, LinearAlgebra, Printf
 
-function gen_matrix(Vp,Vs)
+function GenMatrix(Vp,Vs)
 
     # Functtion that create a vector of time and 
     function FausseTrace(x,Δt,Nt,t,Vp,Vs,αp,αs,𝑓₀,t₀)
