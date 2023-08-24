@@ -1,7 +1,7 @@
 using SeismicQ, Plots
 
 function MainSource()
-    
+    visu=true
     # Spatial extent
     l  = (x = 25.0, y = 12.5)
 
@@ -210,12 +210,12 @@ function MainSource()
     #     @.  τ.xx = τ.xx * bc_filtE_c 
 
         # Visualisation
-        # if mod(it, Nout)==0
-        #    # @. Vnorm = sqrt(V.c.x^2+V.c.y^2)
-        #    # Vmax = max(Vmax, maximum(V.v.z))
-        #     display( heatmap(X.v.x,X.v.y, V.v.z' , clim=(-1.e-4,1.e-4)))
-        #     sleep(0.1)
-        # end
+        if mod(it, Nout)==0 && visu==true
+           # @. Vnorm = sqrt(V.c.x^2+V.c.y^2)
+           # Vmax = max(Vmax, maximum(V.v.z))
+            display( heatmap(X.v.x,X.v.y, V.v.z' , clim=(-1.e-4,1.e-4)))
+            sleep(0.1)
+        end
     end
     #@show Vmax
 end

@@ -22,7 +22,7 @@ function MainSource()
 
 
     # Source parameters
-    𝑓₀   = 200     # Central frequency of the source [Hz]
+    𝑓₀   = 50     # Central frequency of the source [Hz]
     t₀   = 1.2/𝑓₀
     isrc = Int((Nc.x/2)+1)
     jsrc = Int((Nc.y/2)+1)
@@ -87,10 +87,10 @@ function MainSource()
         @. L.i.yx[:,2:end-1] = (V.c.y[2:end,2:end-1] - V.c.y[1:end-1,2:end-1])/Δ.x
         @. L.j.yx[2:end-1,:] = (V.v.y[2:end,:] - V.v.y[1:end-1,:])/Δ.x
 
-        @. L.i.yy[:,2:end-1] = (V.v.y[:,2:end] - V.v.y[:,2:end])/Δ.y
+        @. L.i.yy[:,2:end-1] = (V.v.y[:,2:end] - V.v.y[:,1:end-1])/Δ.y
         @. L.j.yy[2:end-1,:] = (V.c.y[2:end-1,2:end] - V.c.y[2:end-1,1:end-1])/Δ.y
 
-        @. L.i.xy[:,2:end-1] = (V.v.x[:,2:end] - V.v.x[:,2:end])/Δ.y
+        @. L.i.xy[:,2:end-1] = (V.v.x[:,2:end] - V.v.x[:,1:end-1])/Δ.y
         @. L.j.xy[2:end-1,:] = (V.c.x[2:end-1,2:end] - V.c.x[2:end-1,1:end-1])/Δ.y
         
         
@@ -149,14 +149,14 @@ function MainSource()
                                     *((τ.j.xy[3:end-1,2:end-1]-τ.j.xy[2:end-2,2:end-1])/Δ.x
                                     + (τ.i.yy[2:end-1,3:end-1]-τ.i.yy[2:end-1,2:end-2])/Δ.y 
                                     - (P.i[2:end-1,3:end-1]-P.i[2:end-1,2:end-2])/Δ.y 
-                                    - 0.0*f_ext.v[2:end-1,2:end-1]))
+                                    - f_ext.v[2:end-1,2:end-1]))
         
         @. V.c.y[2:end-1,2:end-1] = (V.c.y[2:end-1,2:end-1] 
                                     + Δt/ρ.c[2:end-1,2:end-1]
                                     *((τ.i.xy[2:end,2:end-1]-τ.i.xy[1:end-1,2:end-1])/Δ.x
                                     + (τ.j.yy[2:end-1,2:end]-τ.j.yy[2:end-1,1:end-1])/Δ.y 
                                     - (P.j[2:end-1,2:end]-P.j[2:end-1,1:end-1])/Δ.y 
-                                    - 0.0*Xf_ext.c[2:end-1,2:end-1]))   
+                                    - f_ext.c[2:end-1,2:end-1]))   
        
     
     #     # Absorbing boundary Cerjean et al. (1985)
