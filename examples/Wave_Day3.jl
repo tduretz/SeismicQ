@@ -9,6 +9,7 @@ function MainSource()
     ρ₀   = 1500.0
     K₀   = 1.e9
     G₀   = 1.e8
+    c₀   = sqrt((K₀+4/3*G₀)/ρ₀) 
      
     # Discretization
     Ncx = 1000
@@ -20,12 +21,11 @@ function MainSource()
     t₀  = 1.2/𝑓₀
 
     # Time domain
-    E    = 9K₀*G₀/(3K₀ + G₀)
-    Δt   = min(1e10, Δx/sqrt(E/ρ₀)/2.1) # Courant criteria from wavespeed
+    Δt   = min(1e10, Δx/c₀) # Courant criteria from wavespeed
     Nt   = 5000
     Nout = 100
     t    = -t₀
-    v    = 0.0
+    v  = 0.0
    
     # Storage on centers # +2 for ghost nodes for BCs
     szv   = (Ncx+1,)
@@ -43,13 +43,18 @@ function MainSource()
     ρ     = ones(szv)*ρ₀ 
 
     # Time loop
-    @views @time for it=1:Nt
+     @time for it=1:Nt
 
         # Compute Ricker function
         t     += Δt
         a      = Ricker(t, t₀, 𝑓₀)
         v     += a*Δt
         V.x[1] = v
+       
+        # Laetitia is not yet absorbing
+        # vbc    = V.x[end]-c₀/Δx*Δt*(V.x[end]-V.x[end-1])
+        # V.x[end] = vbc
+        # @show vbc
 
         # Velocity gradient components
         @. ∂Vx∂x[2:end-1] = (V.x[2:end] - V.x[1:end-1])/Δx
