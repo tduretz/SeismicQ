@@ -65,7 +65,7 @@ f_relax(G,η,Δt)
 Relaxation part of the deviatoric Maxwell visco-elastic constitutive update: 
 for use in the calculation of 
 ```math    
-Δτ = (DeN / (1+DeN)) * τ_{OLD} + Δτ_{CONSTITUTIVE}
+Δτ = (DeN / (1+DeN)) τ_{OLD} + Δτ_{CONSTITUTIVE}
 ```
 with DeN a numerical Deborah number, equal to 
 ```math    
@@ -76,4 +76,26 @@ and η the shear viscosity.
 function f_relax(G,η,Δt)
     DeN=η/(G*Δt) # numerical Deborah number
     return DeN/(1.0+DeN)
+end
+
+"""
+f_visc(ηb)
+
+compute effective bulk viscosity for a Kelvin visco-elastic constitutive update: 
+here obviously it is for a linear update 
+"""
+function f_visc(ηb)
+    return ηb
+end
+
+"""
+f_bulk(K,ηb,Δt)
+
+compute effective bulk modulus for a Kelvin visco-elastic constitutive update 
+    using the Fatboy number
+
+"""
+function f_bulk(K,ηb,Δt)
+    Fb_bnum = ηb/K/Δt # numerical bulk fatboy number  
+    return K*(1+Fb_bnum)
 end
