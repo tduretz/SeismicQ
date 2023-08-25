@@ -77,7 +77,7 @@ function MainSource()
         @. ε̇.xx = ∂Vx∂x - 1/3*∇V
       
         # Stress update
-        @. τ.xx = f_shear(G)*Δt*(ε̇.xx) + f_relax(G)*τ.xx
+        @. τ.xx = f_shear(G,1.0e5,Δt)*Δt*(ε̇.xx) + f_relax(G,1.0e5,Δt)*τ.xx
 
         # Pressure update 
         @. P    = P - Δt*f_bulk(K)*∇V
@@ -112,17 +112,6 @@ function MainSource()
     ylabel="time [s]",yflip=true,clim=(-valim,+valim))
     display(p)
 
-end
-
-function f_bulk(K) 
-   return K
-end
-
-function f_shear(G)
-    return 2*G
-end
-function f_relax(G)
-    return 1.
 end
 
 MainSource()
