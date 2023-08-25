@@ -12,14 +12,13 @@ function MainSource()
     c₀   = sqrt((K₀+4/3*G₀)/ρ₀) 
      
     # Discretization
-    Nc  = (x = 200, y = 100) 
+    Nc  = (x = 100, y = 50) 
     Δ   = (x = l.x/Nc.x, y = l.y/Nc.y, z=1.0)
-    X   = (v = (x= LinRange(0,l.x,Nc.x+1)            , y= LinRange(0,l.y,Nc.y+1)),
-          c = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2)),
-          i = (x= LinRange(0,l.x,Nc.x+1)             , y= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2)),
-          j = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0,l.y,Nc.y+1))) 
+    X   = (v = (x= LinRange(0,l.x,Nc.x+1)             , y= LinRange(0,l.y,Nc.y+1)),
+           c = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2)),
+           i = (x= LinRange(0,l.x,Nc.x+1)             , y= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2)),
+           j = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0,l.y,Nc.y+1))) 
     
-
 
     # Source parameters
     𝑓₀   = 25   # Central frequency of the source [Hz]
@@ -27,9 +26,9 @@ function MainSource()
     src = (i=Int((Nc.x/2)+1),j=Int((Nc.y/2)+1))
     # src = (i=[Int(10/Δx) ],j=Int((Nc.y/2)+1))
     # Time domain
-    Δt   = min(1e10, 0.3*Δ.x/c₀, 0.3*Δ.y/c₀ ) # Courant criteria from wavespeed
+    Δt   = min(1e10, 0.3*Δ.x/c₀/2, 0.3*Δ.y/c₀/2 ) # Courant criteria from wavespeed
     Nt   = 2000
-    Nout = 100
+    Nout = 200
     t    = -t₀
    
     # Storage on centers # +2 for ghost nodes for BCs
@@ -37,7 +36,6 @@ function MainSource()
     szc   = (Nc.x+2, Nc.y+2)
     szi   = (Nc.x+1, Nc.y+2)
     szj   = (Nc.x+2, Nc.y+1)
-    
     # Storage on i and j meshes
     K     = (i= ones(szi)*K₀, j= ones(szj)*K₀) 
     G     = (i= ones(szi)*G₀, j= ones(szj)*G₀) 
@@ -88,19 +86,19 @@ function MainSource()
         #@show size(V.v.y[2:end,:])
         #@show size(L.j.x[2:end-1,2:end-1])
 
-        @.. L.i.xx[:,2:end-1] = (V.c.x[2:end,2:end-1] - V.c.x[1:end-1,2:end-1])/Δ.x
-        @.. L.j.xx[2:end-1,:] = (V.v.x[2:end,:] - V.v.x[1:end-1,:])/Δ.x
+        # @.. L.i.xx[:,2:end-1] = (V.c.x[2:end,2:end-1] - V.c.x[1:end-1,2:end-1])/Δ.x
+        # @.. L.j.xx[2:end-1,:] = (V.v.x[2:end,:] - V.v.x[1:end-1,:])/Δ.x
 
-        @.. L.i.yx[:,2:end-1] = (V.c.y[2:end,2:end-1] - V.c.y[1:end-1,2:end-1])/Δ.x
-        @.. L.j.yx[2:end-1,:] = (V.v.y[2:end,:] - V.v.y[1:end-1,:])/Δ.x
+        # @.. L.i.yx[:,2:end-1] = (V.c.y[2:end,2:end-1] - V.c.y[1:end-1,2:end-1])/Δ.x
+        # @.. L.j.yx[2:end-1,:] = (V.v.y[2:end,:] - V.v.y[1:end-1,:])/Δ.x
 
-        @.. L.i.yy[:,2:end-1] = (V.v.y[:,2:end] - V.v.y[:,1:end-1])/Δ.y
-        @.. L.j.yy[2:end-1,:] = (V.c.y[2:end-1,2:end] - V.c.y[2:end-1,1:end-1])/Δ.y
+        # @.. L.i.yy[:,2:end-1] = (V.v.y[:,2:end] - V.v.y[:,1:end-1])/Δ.y
+        # @.. L.j.yy[2:end-1,:] = (V.c.y[2:end-1,2:end] - V.c.y[2:end-1,1:end-1])/Δ.y
 
-        @.. L.i.xy[:,2:end-1] = (V.v.x[:,2:end] - V.v.x[:,1:end-1])/Δ.y
-        @.. L.j.xy[2:end-1,:] = (V.c.x[2:end-1,2:end] - V.c.x[2:end-1,1:end-1])/Δ.y
+        # @.. L.i.xy[:,2:end-1] = (V.v.x[:,2:end] - V.v.x[:,1:end-1])/Δ.y
+        # @.. L.j.xy[2:end-1,:] = (V.c.x[2:end-1,2:end] - V.c.x[2:end-1,1:end-1])/Δ.y
 
-        @.. L.i.zy[:,2:end-1] = (V.v.z[:,2:end] - V.v.z[:,1:end-1])/Δ.y
+        @..  L.i.zy[:,2:end-1] .= (V.v.z[:,2:end] .- V.v.z[:,1:end-1])./Δ.y
         @.. L.j.zy[2:end-1,:] = (V.c.z[2:end-1,2:end] - V.c.z[2:end-1,1:end-1])/Δ.y
 
         @.. L.i.zx[:,2:end-1] = (V.c.z[2:end,2:end-1] - V.c.z[1:end-1,2:end-1])/Δ.x
@@ -108,21 +106,21 @@ function MainSource()
         
         
     #     # Divergence
-        @.. ∇V.i   = L.i.xx + L.i.yy
-        @.. ∇V.j   = L.j.xx + L.j.yy
+        # @.. ∇V.i   = L.i.xx + L.i.yy
+        # @.. ∇V.j   = L.j.xx + L.j.yy
 
     #     # Deviatoric strain rate 
-        @.. ε̇.i.xx = L.i.xx - 1//3*∇V.i
-        @.. ε̇.j.xx = L.j.xx - 1//3*∇V.j
+        # @.. ε̇.i.xx = L.i.xx - 1//3*∇V.i
+        # @.. ε̇.j.xx = L.j.xx - 1//3*∇V.j
 
-        @.. ε̇.i.yy = L.i.yy - 1//3*∇V.i
-        @.. ε̇.j.yy = L.j.yy - 1//3*∇V.j
+        # @.. ε̇.i.yy = L.i.yy - 1//3*∇V.i
+        # @.. ε̇.j.yy = L.j.yy - 1//3*∇V.j
 
-        @.. ε̇.i.zz = - 1//3*∇V.i
-        @.. ε̇.j.zz = - 1//3*∇V.j
+        # @.. ε̇.i.zz = - 1//3*∇V.i
+        # @.. ε̇.j.zz = - 1//3*∇V.j
 
-        @.. ε̇.i.xy = 1//2*(L.i.xy + L.i.yx)
-        @.. ε̇.j.xy = 1//2*(L.j.xy + L.j.yx)
+        # @.. ε̇.i.xy = 1//2*(L.i.xy + L.i.yx)
+        # @.. ε̇.j.xy = 1//2*(L.j.xy + L.j.yx)
         
                # in 2D Lxz and Lyz are zero 
         @.. ε̇.i.xz = 1//2*(L.i.zx)
@@ -132,17 +130,17 @@ function MainSource()
         @.. ε̇.j.yz = 1//2*(L.j.zy)
       
     #     # Stress update
-        @.. τ.i.xx = f_shear(G.i)*Δt*(ε̇.i.xx) + f_relax(G.i)*τ.i.xx
-        @.. τ.j.xx = f_shear(G.j)*Δt*(ε̇.j.xx) + f_relax(G.j)*τ.j.xx
+        # @.. τ.i.xx = f_shear(G.i)*Δt*(ε̇.i.xx) + f_relax(G.i)*τ.i.xx
+        # @.. τ.j.xx = f_shear(G.j)*Δt*(ε̇.j.xx) + f_relax(G.j)*τ.j.xx
 
-        @.. τ.i.yy = f_shear(G.i)*Δt*(ε̇.i.yy) + f_relax(G.i)*τ.i.yy
-        @.. τ.j.yy = f_shear(G.j)*Δt*(ε̇.j.yy) + f_relax(G.j)*τ.j.yy
+        # @.. τ.i.yy = f_shear(G.i)*Δt*(ε̇.i.yy) + f_relax(G.i)*τ.i.yy
+        # @.. τ.j.yy = f_shear(G.j)*Δt*(ε̇.j.yy) + f_relax(G.j)*τ.j.yy
 
-        @.. τ.i.zz = f_shear(G.i)*Δt*(ε̇.i.zz) + f_relax(G.i)*τ.i.zz
-        @.. τ.j.zz = f_shear(G.j)*Δt*(ε̇.j.zz) + f_relax(G.j)*τ.j.zz
+        # @.. τ.i.zz = f_shear(G.i)*Δt*(ε̇.i.zz) + f_relax(G.i)*τ.i.zz
+        # @.. τ.j.zz = f_shear(G.j)*Δt*(ε̇.j.zz) + f_relax(G.j)*τ.j.zz
 
-        @.. τ.i.xy = f_shear(G.i)*Δt*(ε̇.i.xy) + f_relax(G.i)*τ.i.xy
-        @.. τ.j.xy = f_shear(G.j)*Δt*(ε̇.j.xy) + f_relax(G.j)*τ.j.xy
+        # @.. τ.i.xy = f_shear(G.i)*Δt*(ε̇.i.xy) + f_relax(G.i)*τ.i.xy
+        # @.. τ.j.xy = f_shear(G.j)*Δt*(ε̇.j.xy) + f_relax(G.j)*τ.j.xy
 
         @.. τ.i.xz = f_shear(G.i)*Δt*(ε̇.i.xz) + f_relax(G.i)*τ.i.xz
         @.. τ.j.xz = f_shear(G.j)*Δt*(ε̇.j.xz) + f_relax(G.j)*τ.j.xz
@@ -151,37 +149,37 @@ function MainSource()
         @.. τ.j.yz = f_shear(G.j)*Δt*(ε̇.j.yz) + f_relax(G.j)*τ.j.yz
 
     #     # Pressure update 
-        @.. P.i    = P.i - Δt*f_bulk(K.i)*∇V.i
-        @.. P.j    = P.j - Δt*f_bulk(K.j)*∇V.j
+        # @.. P.i    = P.i - Δt*f_bulk(K.i)*∇V.i
+        # @.. P.j    = P.j - Δt*f_bulk(K.j)*∇V.j
 
     #     # Linear momentum balance
-        @.. V.v.x[2:end-1,2:end-1] = (V.v.x[2:end-1,2:end-1] 
-                                    + Δt/ρ.v[2:end-1,2:end-1]
-                                    *((τ.j.xx[3:end-1,2:end-1]-τ.j.xx[2:end-2,2:end-1])/Δ.x
-                                    + (τ.i.xy[2:end-1,3:end-1]-τ.i.xy[2:end-1,2:end-2])/Δ.y 
-                                    - (P.j[3:end-1,2:end-1]-P.j[2:end-2,2:end-1])/Δ.x 
-                                    - 0.0*f_ext.v[2:end-1,2:end-1]))
+    #     @.. V.v.x[2:end-1,2:end-1] = (V.v.x[2:end-1,2:end-1] 
+    #                                 + Δt/ρ.v[2:end-1,2:end-1]
+    #                                 *((τ.j.xx[3:end-1,2:end-1]-τ.j.xx[2:end-2,2:end-1])/Δ.x
+    #                                 + (τ.i.xy[2:end-1,3:end-1]-τ.i.xy[2:end-1,2:end-2])/Δ.y 
+    #                                 - (P.j[3:end-1,2:end-1]-P.j[2:end-2,2:end-1])/Δ.x 
+    #                                 - 0.0*f_ext.v[2:end-1,2:end-1]))
         
-        @.. V.c.x[2:end-1,2:end-1] = (V.c.x[2:end-1,2:end-1] 
-                                    + Δt/ρ.c[2:end-1,2:end-1]
-                                    *((τ.i.xx[2:end,2:end-1]-τ.i.xx[1:end-1,2:end-1])/Δ.x
-                                    + (τ.j.xy[2:end-1,2:end]-τ.j.xy[2:end-1,1:end-1])/Δ.y
-                                    - (P.i[2:end,2:end-1]-P.i[1:end-1,2:end-1])/Δ.x 
-                                    - 0.0*f_ext.c[2:end-1,2:end-1]))                            
+    #     @.. V.c.x[2:end-1,2:end-1] = (V.c.x[2:end-1,2:end-1] 
+    #                                 + Δt/ρ.c[2:end-1,2:end-1]
+    #                                 *((τ.i.xx[2:end,2:end-1]-τ.i.xx[1:end-1,2:end-1])/Δ.x
+    #                                 + (τ.j.xy[2:end-1,2:end]-τ.j.xy[2:end-1,1:end-1])/Δ.y
+    #                                 - (P.i[2:end,2:end-1]-P.i[1:end-1,2:end-1])/Δ.x 
+    #                                 - 0.0*f_ext.c[2:end-1,2:end-1]))                            
 
-       @.. V.v.y[2:end-1,2:end-1] = (V.v.y[2:end-1,2:end-1] 
-                                    + Δt/ρ.v[2:end-1,2:end-1]
-                                    *((τ.j.xy[3:end-1,2:end-1]-τ.j.xy[2:end-2,2:end-1])/Δ.x
-                                    + (τ.i.yy[2:end-1,3:end-1]-τ.i.yy[2:end-1,2:end-2])/Δ.y 
-                                    - (P.i[2:end-1,3:end-1]-P.i[2:end-1,2:end-2])/Δ.y 
-                                    - 0.0*f_ext.v[2:end-1,2:end-1]))
+    #    @.. V.v.y[2:end-1,2:end-1] = (V.v.y[2:end-1,2:end-1] 
+    #                                 + Δt/ρ.v[2:end-1,2:end-1]
+    #                                 *((τ.j.xy[3:end-1,2:end-1]-τ.j.xy[2:end-2,2:end-1])/Δ.x
+    #                                 + (τ.i.yy[2:end-1,3:end-1]-τ.i.yy[2:end-1,2:end-2])/Δ.y 
+    #                                 - (P.i[2:end-1,3:end-1]-P.i[2:end-1,2:end-2])/Δ.y 
+    #                                 - 0.0*f_ext.v[2:end-1,2:end-1]))
         
-        @.. V.c.y[2:end-1,2:end-1] = (V.c.y[2:end-1,2:end-1] 
-                                    + Δt/ρ.c[2:end-1,2:end-1]
-                                    *((τ.i.xy[2:end,2:end-1]-τ.i.xy[1:end-1,2:end-1])/Δ.x
-                                    + (τ.j.yy[2:end-1,2:end]-τ.j.yy[2:end-1,1:end-1])/Δ.y 
-                                    - (P.j[2:end-1,2:end]-P.j[2:end-1,1:end-1])/Δ.y 
-                                    - 0.0*f_ext.c[2:end-1,2:end-1]))   
+        # @.. V.c.y[2:end-1,2:end-1] = (V.c.y[2:end-1,2:end-1] 
+        #                             + Δt/ρ.c[2:end-1,2:end-1]
+        #                             *((τ.i.xy[2:end,2:end-1]-τ.i.xy[1:end-1,2:end-1])/Δ.x
+        #                             + (τ.j.yy[2:end-1,2:end]-τ.j.yy[2:end-1,1:end-1])/Δ.y 
+        #                             - (P.j[2:end-1,2:end]-P.j[2:end-1,1:end-1])/Δ.y 
+        #                             - 0.0*f_ext.c[2:end-1,2:end-1]))   
 
 # the two terms in dPdz and dtauzzdz  cancel in linear elastic case ... but i am not sure with other rheologies so I have leavec them 
         @.. V.v.z[2:end-1,2:end-1] = (V.v.z[2:end-1,2:end-1] 
@@ -214,10 +212,14 @@ function MainSource()
         if mod(it, Nout)==0 && visu==true
            # @.. Vnorm = sqrt(V.c.x^2+V.c.y^2)
            # Vmax = max(Vmax, maximum(V.v.z))
-            display( heatmap(X.v.x,X.v.y, V.v.z' ,
+            p1= heatmap(X.v.x,X.v.y, V.v.z' ,
              c= palette([RGB(0/255,150/255,0/255), RGB(0/255,0/255,200/255),RGB(255/255,255/255,255/255), RGB(150/255,0/255,150/255),RGB(200/255,0/255,0/255)], 50),
-               clim=(-2.e-5,2.e-5)))
-            sleep(0.1)
+               clim=(-2.e-5,2.e-5))
+            p2 = heatmap(X.c.x,X.c.y, V.c.z' ,
+            c= palette([RGB(0/255,150/255,0/255), RGB(0/255,0/255,200/255),RGB(255/255,255/255,255/255), RGB(150/255,0/255,150/255),RGB(200/255,0/255,0/255)], 50),
+              clim=(-2.e-5,2.e-5)) 
+            display(plot(p1, p2, layout=(2,1))     )
+            #sleep(0.1)
         end
     end
     #@show Vmax
