@@ -24,22 +24,22 @@ function MainSource()
     # Discretization
     Nc  = (x = 200, y = 200) 
     Δ   = (x = l.x/Nc.x, y = l.y/Nc.y, z=1.0)
-    X   = (v = (x= LinRange(0,l.x,Nc.x+1)            , y= LinRange(0,l.y,Nc.y+1)),
-          c = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2)),
-          i = (x= LinRange(0,l.x,Nc.x+1)             , y= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2)),
-          j = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0,l.y,Nc.y+1))) 
+    X   = (v = (x= LinRange(0,l.x,Nc.x+1)             , y= LinRange(0,l.y,Nc.y+1)),
+           c = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2)),
+           i = (x= LinRange(0,l.x,Nc.x+1)             , y= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2)),
+           j = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0,l.y,Nc.y+1))) 
     
-
-
     # Source parameters
     𝑓₀   = 50   # Central frequency of the source [Hz]
     t₀   = 1.2/𝑓₀
-    src = (i=Int((Nc.x/2)+1),j=Int((Nc.y/2)+1))
+    src  = (i=Int((Nc.x/2)+1),j=Int((Nc.y/2)+1))
+    facS = (v=(x=1.0,y=1.0,z=1.0),c=(x=0.0,y=0.0,z=0.0))
+    @show facS.v.y
     # src = (i=[Int(10/Δx) ],j=Int((Nc.y/2)+1))
     # Time domain
     Δt   = min(1e10, 0.3*Δ.x/c₀, 0.3*Δ.y/c₀ ) # Courant criteria from wavespeed
-    Nt   = 2000
-    Nout = 200
+    Nt   = 2800
+    Nout = 400
     t    = -t₀
    
     # Storage on centers # +2 for ghost nodes for BCs
@@ -74,14 +74,7 @@ function MainSource()
      bc_filt_V   = (v=Cerjean2D(X.v,Lbc,l,Δ),c=Cerjean2D(X.c,Lbc,l,Δ))
      bc_filt_tau = (i=Cerjean2D(X.i,Lbc,l,Δ),j=Cerjean2D(X.j,Lbc,l,Δ))
      Vmax = 0.0
-    #  bc_filtW_V   = (v=1.0 .- exp.(-(X.v.x*ones(size(X.v.y))' .-0*l.x).^2/Lbc.^2),
-    #                  c=1.0 .- exp.(-(X.c.x*ones(size(X.c.y))' .-0*l.x).^2/Lbc.^2))
-    #  bc_filtW_tau = (i=1.0 .- exp.(-(X.i.x*ones(size(X.i.y))' .-0l.x).^2/Lbc.^2),
-    #                  j=1.0 .- exp.(-(X.j.x*ones(size(X.i.y))' .-0l.x).^2/Lbc.^2))
-    # bc_filtE_v = 1.0 .- exp.(-(xv.- L.x).^2/Lbc.^2)    
-    # # BC on i and j mesh
-    # bc_filtE_c = 1.0 .- exp.(-(xc.- Lx).^2/Lbc.^2)
-    # bc_filtW_c = 1.0 .- exp.(-(xc.-0Lx).^2/Lbc.^2)
+   
 
     # # Time loop
      @views @time for it=1:Nt
@@ -93,10 +86,8 @@ function MainSource()
         #    f_ext.v[src.i[isrc],src.j[isrc]] += ρ.v[src.i[isrc],src.j[isrc]]*a
         # end
         f_ext.v[src.i,src.j] = ρ.v[src.i,src.j]*a
+        f_ext.c[src.i,src.j] = ρ.v[src.i,src.j]*a
         # Velocity gradient components
-        #@show size(V.v.y[2:end,:])
-        #@show size(L.j.x[2:end-1,2:end-1])
-
         @.. L.i.xx[:,2:end-1] = (V.c.x[2:end,2:end-1] - V.c.x[1:end-1,2:end-1])/Δ.x
         @.. L.j.xx[2:end-1,:] = (V.v.x[2:end,:] - V.v.x[1:end-1,:])/Δ.x
 
@@ -169,41 +160,40 @@ function MainSource()
                                     *((τ.j.xx[3:end-1,2:end-1]-τ.j.xx[2:end-2,2:end-1])/Δ.x
                                     + (τ.i.xy[2:end-1,3:end-1]-τ.i.xy[2:end-1,2:end-2])/Δ.y 
                                     - (P.j[3:end-1,2:end-1]-P.j[2:end-2,2:end-1])/Δ.x 
-                                    - 0.0*f_ext.v[2:end-1,2:end-1]))
-        
+                                    - facS.v.x*f_ext.v[2:end-1,2:end-1]))
         @.. V.c.x[2:end-1,2:end-1] = (V.c.x[2:end-1,2:end-1] 
                                     + Δt/ρ.c[2:end-1,2:end-1]
                                     *((τ.i.xx[2:end,2:end-1]-τ.i.xx[1:end-1,2:end-1])/Δ.x
                                     + (τ.j.xy[2:end-1,2:end]-τ.j.xy[2:end-1,1:end-1])/Δ.y
                                     - (P.i[2:end,2:end-1]-P.i[1:end-1,2:end-1])/Δ.x 
-                                    - 0.0*f_ext.c[2:end-1,2:end-1]))                            
+                                    - facS.c.x*f_ext.c[2:end-1,2:end-1]))                            
 
        @.. V.v.y[2:end-1,2:end-1] = (V.v.y[2:end-1,2:end-1] 
                                     + Δt/ρ.v[2:end-1,2:end-1]
                                     *((τ.j.xy[3:end-1,2:end-1]-τ.j.xy[2:end-2,2:end-1])/Δ.x
                                     + (τ.i.yy[2:end-1,3:end-1]-τ.i.yy[2:end-1,2:end-2])/Δ.y 
                                     - (P.i[2:end-1,3:end-1]-P.i[2:end-1,2:end-2])/Δ.y 
-                                    - 0.0*f_ext.v[2:end-1,2:end-1]))
+                                    - facS.v.y*f_ext.v[2:end-1,2:end-1]))
         
         @.. V.c.y[2:end-1,2:end-1] = (V.c.y[2:end-1,2:end-1] 
                                     + Δt/ρ.c[2:end-1,2:end-1]
                                     *((τ.i.xy[2:end,2:end-1]-τ.i.xy[1:end-1,2:end-1])/Δ.x
                                     + (τ.j.yy[2:end-1,2:end]-τ.j.yy[2:end-1,1:end-1])/Δ.y 
                                     - (P.j[2:end-1,2:end]-P.j[2:end-1,1:end-1])/Δ.y 
-                                    - 0.0*f_ext.c[2:end-1,2:end-1]))   
+                                    - facS.c.y*f_ext.c[2:end-1,2:end-1]))   
 
 # the two terms in dPdz and dtauzzdz  cancel in linear elastic case ... but i am not sure with other rheologies so I have leavec them 
         @.. V.v.z[2:end-1,2:end-1] = (V.v.z[2:end-1,2:end-1] 
                                     + Δt/ρ.v[2:end-1,2:end-1]
                                     *((τ.j.xz[3:end-1,2:end-1]-τ.j.xz[2:end-2,2:end-1])/Δ.x
                                     + (τ.i.yz[2:end-1,3:end-1]-τ.i.yz[2:end-1,2:end-2])/Δ.y 
-                                    - f_ext.v[2:end-1,2:end-1]))
+                                    - facS.v.z* f_ext.v[2:end-1,2:end-1]))
         
         @.. V.c.z[2:end-1,2:end-1] = (V.c.z[2:end-1,2:end-1] 
                                     + Δt/ρ.c[2:end-1,2:end-1]
                                     *((τ.i.xz[2:end,2:end-1]-τ.i.xz[1:end-1,2:end-1])/Δ.x
                                     + (τ.j.yz[2:end-1,2:end]-τ.j.yz[2:end-1,1:end-1])/Δ.y 
-                                    - f_ext.c[2:end-1,2:end-1]))   
+                                    - facS.c.z*f_ext.c[2:end-1,2:end-1]))   
     
     #     # Absorbing boundary Cerjean et al. (1985)
         
@@ -213,11 +203,23 @@ function MainSource()
         @..  V.c.x  = V.c.x  * bc_filt_V.c 
         @..  V.c.y  = V.c.y  * bc_filt_V.c 
         @..  V.c.z  = V.c.z  * bc_filt_V.c  
-        # @..  P    = P    * bc_filtW_c 
-        # @..  τ.xx = τ.xx * bc_filtW_c 
-    #     @..  V.x  = V.x  * bc_filtE_v 
-    #     @..  P    = P    * bc_filtE_c 
-    #     @..  τ.xx = τ.xx * bc_filtE_c 
+
+        @..  P.i    = P.i    *  bc_filt_tau.i 
+        @..  τ.i.xx = τ.i.xx *  bc_filt_tau.i
+        @..  τ.i.yy = τ.i.yy *  bc_filt_tau.i
+        @..  τ.i.zz = τ.i.zz *  bc_filt_tau.i
+        @..  τ.i.xy = τ.i.xy *  bc_filt_tau.i
+        @..  τ.i.xz = τ.i.xz *  bc_filt_tau.i
+        @..  τ.i.yz = τ.i.yz *  bc_filt_tau.i
+
+
+        @..  P.j    = P.j    *  bc_filt_tau.j 
+        @..  τ.j.xx = τ.j.xx *  bc_filt_tau.j
+        @..  τ.j.yy = τ.j.yy *  bc_filt_tau.j
+        @..  τ.j.zz = τ.j.zz *  bc_filt_tau.j
+        @..  τ.j.xy = τ.j.xy *  bc_filt_tau.j
+        @..  τ.j.xz = τ.j.xz *  bc_filt_tau.j
+        @..  τ.j.yz = τ.j.yz *  bc_filt_tau.j
 
         # Visualisation
         if mod(it, Nout)==0 && visu==true
@@ -229,15 +231,27 @@ function MainSource()
             # sleep(0.1)
             
 
-            resol=1000 
-            f = Figure(resolution = (l.x/l.y*resol, resol), fontsize=25)
+            resol=500 
+            f = Figure(resolution = (l.x/l.y*resol*3, resol*2), fontsize=15)
 
             
-                ax1 = Axis(f[1, 1], title = L" vz on v grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
-                hm = heatmap!(ax1, X.v.x,X.v.y, V.v.z, colormap = wave_colors)
+                ax1 = Axis(f[1, 1], title = L" vx on v grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
+                hm = heatmap!(ax1, X.v.x,X.v.y, V.v.x, colormap = wave_colors,colorrange=(-1.e-5,1.e-5))
             
-                ax2 = Axis(f[2, 1], title = L" vz on c grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
-                hm = heatmap!(ax2, X.c.x,X.c.y, V.c.z, colormap = wave_colors)
+                ax2 = Axis(f[2, 1], title = L" vx on c grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
+                hm = heatmap!(ax2, X.c.x,X.c.y, V.c.x, colormap = wave_colors,colorrange=(-1.e-5,1.e-5))
+
+                ax3 = Axis(f[1, 2], title = L" vy on v grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
+                hm = heatmap!(ax3, X.v.x,X.v.y, V.v.y, colormap = wave_colors,colorrange=(-1.e-5,1.e-5))
+            
+                ax4 = Axis(f[2, 2], title = L" vy on c grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
+                hm = heatmap!(ax4, X.c.x,X.c.y, V.c.y, colormap = wave_colors,colorrange=(-1.e-5,1.e-5))
+
+                ax5 = Axis(f[1, 3], title = L" vz on v grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
+                hm = heatmap!(ax5, X.v.x,X.v.y, V.v.z, colormap = wave_colors,colorrange=(-1.e-5,1.e-5))
+            
+                ax6 = Axis(f[2, 3], title = L" vz on c grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
+                hm = heatmap!(ax6, X.c.x,X.c.y, V.c.z, colormap = wave_colors,colorrange=(-1.e-5,1.e-5))
 
                 # if T_contours 
                 #     contour!(ax1, xc./Lc, zc./Lc, T, levels=0:200:1400, linewidth = 4, color=:white )  
@@ -250,11 +264,11 @@ function MainSource()
                 # end    
 
                 colsize!(f.layout, 1, Aspect(1, l.x/l.y))
-                GLMakie.Colorbar(f[1, 2], hm, label = "Vz [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
+                GLMakie.Colorbar(f[1, 4], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
                 GLMakie.colgap!(f.layout, 20)
                 display(f)
                 sleep(0.1)
-                if printfig Print2Disk( f, path, "Vz", it) end
+                if printfig Print2Disk( f, path, "Vall", it) end
         end
     end
     #@show Vmax
