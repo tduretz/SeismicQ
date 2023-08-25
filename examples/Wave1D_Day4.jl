@@ -22,18 +22,18 @@ function MainSource()
     K₀   = 1.e9
     G₀   = 1.e8
     c₀   = sqrt((K₀+4/3*G₀)/ρ₀) 
-    De   = 1.0 # Deborah number
+    De   = .1 # Deborah number
     η₀   = De*G₀ / 𝑓₀
      
     # Discretization
-    Ncx = 500
+    Ncx = 1000
     Δx  = Lx/Ncx
     xv  = LinRange(0,Lx,Ncx+1)
     xc  = LinRange(0-Δx/2,Lx+Δx/2,Ncx+2)
 
     # Time domain
-    Δt   = min(1e10, Δx/c₀/2.1/1) # Courant criteria from wavespeed
-    Nt   = 2000
+    Δt   = min(1e10, Δx/c₀/2.1/2) # Courant criteria from wavespeed
+    Nt   = 4000
     Nout = 50
     t    = -t₀
    
