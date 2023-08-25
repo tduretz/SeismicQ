@@ -114,15 +114,4 @@ function MainSource()
 
 end
 
-function f_bulk(K) 
-   return K
-end
-
-function f_shear(G)
-    return 2*G
-end
-function f_relax(G)
-    return 1.
-end
-
 MainSource()
