@@ -5,6 +5,9 @@
 ## Function Documentation
 ```@docs
 Ricker
+```
+```@docs
+f_bulk
 Spec
 ComputeQgraph
 Getfreq

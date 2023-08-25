@@ -1,4 +1,4 @@
-using SeismicQ, Plots
+using SeismicQ, Plots,Classical
 
 function MainSource()
     
