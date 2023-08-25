@@ -10,7 +10,10 @@ export f_relax
 include("Spec.jl")
 export Getfreq, Spec, ComputeQgraph
 
-include("GenFakeData.jl")
-export GenMatrix
+include("GenFakeDataCleanFinal.jl")
+export GenAttenuatedRicker
+
+include("PlotReceiverGather.jl")
+export PlotReceiverGather
 
 end # module SeismicQ
