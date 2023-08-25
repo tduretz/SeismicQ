@@ -1,9 +1,19 @@
-using SeismicQ, Plots, FastBroadcast
+using SeismicQ, FastBroadcast,GLMakie, Printf, Colors, ColorSchemes, MathTeXEngine
+Makie.update_theme!(fonts = (regular = texfont(), bold = texfont(:bold), italic = texfont(:italic)))
 
 function MainSource()
-    visu=true
+    visu     = true
+    printfig = true  # print figures to disk
+    path     = "/Users/laetitia/codes/SeismicQ/RUNS/logo/"
+    juliadivcmap    = zeros(RGB{Float64}, 5)
+    juliadivcmap[1] = RGBA{Float64}(0/255,150/255,0/255, 1.)  
+    juliadivcmap[2] = RGBA{Float64}(0/255,0/255,200/255, 1.)  
+    juliadivcmap[3] = RGBA{Float64}(255/255,255/255,255/255, 1.) 
+    juliadivcmap[4] = RGBA{Float64}(150/255,0/255,150/255, 1.) 
+    juliadivcmap[5] = RGBA{Float64}(200/255,0/255,0/255, 1.)
+    wave_colors     = cgrad(juliadivcmap, length(juliadivcmap), categorical=true, rev=false)
     # Spatial extent
-    l  = (x = 25.0, y = 12.5)
+    l  = (x = 25, y = 25)
 
     # Mechanical parameters 
     ρ₀   = 1500.0
@@ -12,7 +22,7 @@ function MainSource()
     c₀   = sqrt((K₀+4/3*G₀)/ρ₀) 
      
     # Discretization
-    Nc  = (x = 200, y = 100) 
+    Nc  = (x = 200, y = 200) 
     Δ   = (x = l.x/Nc.x, y = l.y/Nc.y, z=1.0)
     X   = (v = (x= LinRange(0,l.x,Nc.x+1)            , y= LinRange(0,l.y,Nc.y+1)),
           c = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2)),
@@ -22,14 +32,14 @@ function MainSource()
 
 
     # Source parameters
-    𝑓₀   = 25   # Central frequency of the source [Hz]
+    𝑓₀   = 50   # Central frequency of the source [Hz]
     t₀   = 1.2/𝑓₀
     src = (i=Int((Nc.x/2)+1),j=Int((Nc.y/2)+1))
     # src = (i=[Int(10/Δx) ],j=Int((Nc.y/2)+1))
     # Time domain
     Δt   = min(1e10, 0.3*Δ.x/c₀, 0.3*Δ.y/c₀ ) # Courant criteria from wavespeed
     Nt   = 2000
-    Nout = 100
+    Nout = 200
     t    = -t₀
    
     # Storage on centers # +2 for ghost nodes for BCs
@@ -37,7 +47,6 @@ function MainSource()
     szc   = (Nc.x+2, Nc.y+2)
     szi   = (Nc.x+1, Nc.y+2)
     szj   = (Nc.x+2, Nc.y+1)
-    
     # Storage on i and j meshes
     K     = (i= ones(szi)*K₀, j= ones(szj)*K₀) 
     G     = (i= ones(szi)*G₀, j= ones(szj)*G₀) 
@@ -214,10 +223,38 @@ function MainSource()
         if mod(it, Nout)==0 && visu==true
            # @.. Vnorm = sqrt(V.c.x^2+V.c.y^2)
            # Vmax = max(Vmax, maximum(V.v.z))
-            display( heatmap(X.v.x,X.v.y, V.v.z' ,
-             c= palette([RGB(0/255,150/255,0/255), RGB(0/255,0/255,200/255),RGB(255/255,255/255,255/255), RGB(150/255,0/255,150/255),RGB(200/255,0/255,0/255)], 50),
-               clim=(-2.e-5,2.e-5)))
-            sleep(0.1)
+            # display( heatmap(X.v.x,X.v.y, V.v.z' ,
+            #  c= palette([RGB(0/255,150/255,0/255), RGB(0/255,0/255,200/255),RGB(255/255,255/255,255/255), RGB(150/255,0/255,150/255),RGB(200/255,0/255,0/255)], 50),
+            #    clim=(-2.e-5,2.e-5)))
+            # sleep(0.1)
+            
+
+            resol=1000 
+            f = Figure(resolution = (l.x/l.y*resol, resol), fontsize=25)
+
+            
+                ax1 = Axis(f[1, 1], title = L" vz on v grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
+                hm = heatmap!(ax1, X.v.x,X.v.y, V.v.z, colormap = wave_colors)
+            
+                ax2 = Axis(f[2, 1], title = L" vz on c grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
+                hm = heatmap!(ax2, X.c.x,X.c.y, V.c.z, colormap = wave_colors)
+
+                # if T_contours 
+                #     contour!(ax1, xc./Lc, zc./Lc, T, levels=0:200:1400, linewidth = 4, color=:white )  
+                # end
+                # if fabric 
+                #     arrows!(ax1, xc./Lc, zc./Lc, Nz, Nx, arrowsize = 0, lengthscale=Δ/1.5)
+                # end
+                # if σ1_axis
+                #     arrows!(ax1, xc./Lc, zc./Lc, σ1.x, σ1.z, arrowsize = 0, lengthscale=Δ/1.5)
+                # end    
+
+                colsize!(f.layout, 1, Aspect(1, l.x/l.y))
+                GLMakie.Colorbar(f[1, 2], hm, label = "Vz [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
+                GLMakie.colgap!(f.layout, 20)
+                display(f)
+                sleep(0.1)
+                if printfig Print2Disk( f, path, "Vz", it) end
         end
     end
     #@show Vmax
@@ -244,6 +281,12 @@ function Cerjean2D(X,Lbc,l,Δ)
         #  .*(1.0 .- exp.(-(X.v.x*ones(size(X.v.y))' .-l.x).^2/Lbc.^2))
         #  .*(1.0 .- exp.(-(X.v.x*ones(size(X.v.y))' .-0*l.y).^2/Lbc.^2))
         #  .*(1.0 .- exp.(-(X.v.x*ones(size(X.v.y))' .-l.y).^2/Lbc.^2))
+end
+
+function Print2Disk( f, path, field, istep; res=4)
+    path1 = path*"/_$field/"
+    mkpath(path1)
+    save(path1*"$field"*@sprintf("%05d", istep)*".png", f, px_per_unit = res) 
 end
 
 MainSource()

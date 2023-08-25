@@ -9,6 +9,7 @@ Returns the frequency vector corresponding to the fft results
     dt is the time sample in s
     Nt is the number of samples in the trace given to fft()
     The frequency increment is 1/(Nt*dt)
+    Vector goes beyond Nyquist Frequency as fft also does. Only the first half of the vectors are useful for us
 ```
 
 # Examples
@@ -48,12 +49,12 @@ Returns the amplitude spectrums of the P ans S phases where amplitudes are signi
     trace: the trace recorded at a given virtual station, starting at -t0, with time sampling dt, Nt samples
     tp: picked P-wave phase (s)
     ts: picked S-wave phase (s)
-    \Deltaph: width of the phases (s) 
+    Δph: width of the phases (s) 
 ```
 
 ```Output
-    Vec2dP: modulus of the fft coeffs of P phase where larger than max(Vec2dp)/10 
-    Vec2dS: modulus of the fft coeffs of S phase where larger than max(Vec2dp)/10
+    Vec2dP: modulus of the fft coeffs of P phase where they are larger than max(Vec2dp)/10 
+    Vec2dS: modulus of the fft coeffs of S phase where they are larger than max(Vec2dp)/10
     FrequP: corresponding frequency vector to plot P-wave amp. spectrum
     FrequS: corresponding frequency vector to plot S-wave amp. spectrum
 ```
@@ -130,17 +131,27 @@ function Spec(trace,t0,dt,Nt,tp,ts,Δph)
 end
 
 @doc raw"""
-    ComputeQgraph(amp1,amp2,freq,index,d1,d2,V)
+    (x,y)=ComputeQgraph(amp1,amp2,freq,index,d1,d2,V)
 
 Returns x and y to plot Q-graph for a given phase using the results of Spec() for two different traces from two stations
 
 ```Equation
-    Can't write it for now (no LateX in online Editor?)
+    y=V/(π(d2-d1))*ln(amp2(f)/amp1(f)
+    x=f
+
+    Considering two attenuated waves at two different distances from the source (d1<d2), we obtain the following relation:
+    V/(π(d2-d1))*ln(amp2(f)/amp1(f)=-f/Q+V*n/(\pi(d2-d1))*ln(d1/d2)
+
+    After plotting (plot(x,y)), a flat curve indicates infinite Q (no attenuation). This is what happens with the "fake" data used
+    for the developpment of these routines. In an homogeneous Q medium the graph should be linear. In more complex attenuation media,
+    the graph could be non-linear?
+
+    Velocity is considered constant: the current code does not account for possible dispersion...
 ```
 
 # Examples
 ```julia-repl
-julia>  TBD
+julia>  
 ```
 """
 function ComputeQgraph(amp1,amp2,freq,index,d1,d2,V)
