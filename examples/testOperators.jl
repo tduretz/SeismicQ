@@ -18,32 +18,37 @@ numCoefs = (1+numOrder)*numOrder÷2
 Δx₂ = 1
 
 PascalCoefs = zeros(Int64,(numOrder+1,numOrder))
-Coefs = zeros(Rational,(numCoefs))
+NewCoefs = zeros(Rational,(numCoefs))
 
 # Compute Pascal triangle
 
 
 for i in 1:numOrder
-    @show i
-    @show Operators.pascal_triangle(i+1)
+    #@show i
+    #@show Operators.pascal_triangle(i+1)
     
-    @show PascalCoefs[1:i+1,i]=Operators.pascal_triangle(i+1)
+    #@show PascalCoefs[1:i+1,i]=Operators.pascal_triangle(i+1)
     #coefs[1:i,i] = Operators.pascal_triangle(i+1)
     #@show coefs[i,1:i]
 end
 
-Coefs[1]=1
 
-global iCo=1
+
+@show Coefs=Operators.pascal_set(numOrder+1)
+
+
+iCo=1
+for i in 1:numOrder-1
     
-for i in 1:numOrder
     @show denominator=factorial(i)
     for j in 1:i+1
-        @show iCo += 1
-        Coefs[iCo]=PascalCoefs[j,i] // denominator
+        @show iCo, Coefs[iCo], typeof(Coefs[iCo])
+        NewCoefs[iCo]=Coefs[iCo] // denominator
+        
+        global iCo+=1
     end
 end
-@show Coefs
+@show NewCoefs
 
 
 
