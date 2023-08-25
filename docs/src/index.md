@@ -6,3 +6,6 @@
 ```@docs
 Ricker
 ```
+```@docs
+f_bulk
+```
