@@ -2,8 +2,8 @@ using SeismicQ, FastBroadcast, GLMakie, Printf, Colors, ColorSchemes, MathTeXEng
 Makie.update_theme!(fonts = (regular = texfont(), bold = texfont(:bold), italic = texfont(:italic)))
 
 function MainSource()
-    visu     = false
-    printfig = true  # print figures to disk
+    visu     = true
+    printfig = false  # print figures to disk
     path     = "./runs/"
     juliadivcmap    = zeros(RGB{Float64}, 5)
     juliadivcmap[1] = RGBA{Float64}(0/255,150/255,0/255, 1.)  
@@ -86,7 +86,7 @@ function MainSource()
     yv2d   = ones(size( X.v.x)) * X.v.y'
 
     # Time loop
-    @code_warntype @views @time for it=1:Nt
+    @views @time for it=1:Nt
 
         # Compute Ricker function
         t                  += Δt
@@ -244,7 +244,7 @@ function MainSource()
             hm = GLMakie.heatmap!(ax1, X.v.x, X.v.y, V.v.x, colormap = wave_colors,colorrange=(-3.e-5,3.e-5))
         
             ax2 = Axis(f[2, 1], aspect=l.x/l.y, title = L" vx on c grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
-            hm = heatmap!(ax2, X.c.x, X.c.y, V.c.x, colormap = wave_colors,colorrange=(-3.e-5,3.e-5))
+            hm = GLMakie.heatmap!(ax2, X.c.x, X.c.y, V.c.x, colormap = wave_colors,colorrange=(-3.e-5,3.e-5))
 
             ax3 = Axis(f[1, 2], aspect=l.x/l.y, title = L" vy on v grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
             hm = GLMakie.heatmap!(ax3, X.v.x, X.v.y, V.v.y, colormap = wave_colors,colorrange=(-3.e-5,3.e-5))
