@@ -8,4 +8,7 @@ Ricker
 ```
 ```@docs
 f_bulk
+Spec
+ComputeQgraph
+Getfreq
 ```
