@@ -37,6 +37,7 @@ function MainSource()
     szc   = (Nc.x+2, Nc.y+2)
     szi   = (Nc.x+1, Nc.y+2)
     szj   = (Nc.x+2, Nc.y+1)
+    
     # Storage on i and j meshes
     K     = (i= ones(szi)*K₀, j= ones(szj)*K₀) 
     G     = (i= ones(szi)*G₀, j= ones(szj)*G₀) 
