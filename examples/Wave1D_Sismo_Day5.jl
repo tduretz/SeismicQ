@@ -20,11 +20,13 @@ function MainSource()
     # Source parameters
     𝑓₀   = 200     # Central frequency of the source [Hz]
     t₀   = 1.2/𝑓₀
+    σ₀   = Lx/100
     isrc = Int((Ncx/2)+1)
+    x₀   = xv[isrc]
 
     # Time domain
     Δt   = min(1e10, Δx/c₀) # Courant criteria from wavespeed
-    Nt   = 100
+    Nt   = 80
     Nout = 10
     t    = 0.0#-t₀
    
@@ -64,8 +66,7 @@ function MainSource()
 
         # Compute Ricker function
         t          += Δt
-        a           = Ricker(t, t₀, 𝑓₀)
-        f_ext[isrc] = ρ[isrc]*a
+        @. f_ext    = ρ.*Ricker.(xv, x₀, t, t₀, 𝑓₀, σ₀)
 
         # Velocity gradient components
         @. ∂Vx∂x[2:end-1] = (V.x[2:end] - V.x[1:end-1])/Δx
@@ -112,17 +113,6 @@ function MainSource()
     ylabel="time [s]",yflip=true,clim=(-valim,+valim))
     display(p)
 
-end
-
-function f_bulk(K) 
-   return K
-end
-
-function f_shear(G)
-    return 2*G
-end
-function f_relax(G)
-    return 1.
 end
 
 MainSource()
