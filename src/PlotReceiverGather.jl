@@ -1,10 +1,5 @@
-# Function that plot a receiver gather 
-# Inputs :
-    # listₓ : geophone distances to the source (vector) e.g. listₓ = 0:100:5000 ;
-    # time_vec : time points of the received waves (vector)
-    # acc_vec : matrix of wave acceleration at each time points and the geophone positions 
-
 using SeismicQ, Plots, SpecialFunctions, LinearAlgebra, Printf
+
 @doc raw"""
     PlotReceiverGather(listₓ,time_vec,acc_vec) 
 

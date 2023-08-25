@@ -1,18 +1,3 @@
-# Function that generates a matrix that corresponds to the seismic trace (as a Ricker function), attenuated along time
-# and received at different geophone distances to the source
-# Inputs :
-    # listₓ : geophone distances to the source (vector) e.g. listₓ = 0:100:5000 ;
-    # Δt : time step of the wave [s] e.g. Δt  = 1e-3 ;
-    # Nt : number of time steps of the wave e.g. Nt  = 2000 ;
-    # Vp : P-wave velocity [m/s] e.g. Vp = 7000 ;
-    # Vs : S-wave velocity [m/s] e.g. Vp = 4000 ;
-    # αp : attenuation factor for P-wave e.g. αp = 2e-4 ;
-    # αs : attenuation factor for S-wave e.g. αs = 4e-4 ;
-    # 𝑓₀ : central frequency of the source e.g. 𝑓₀  = 10.0 ; 
-# Outputs : 
-    # time_axis : time points of the received waves (vector)
-    # acc_vec : matrix of wave acceleration at each time points and the geophone positions 
-
 using SeismicQ, Plots, SpecialFunctions, LinearAlgebra, Printf
 
 @doc raw"""
@@ -72,8 +57,6 @@ function GenAttenuatedRicker(listₓ,Δt,Nt,Vp,Vs,αp,αs,𝑓₀)
     end
 
     # Outputs
-    return time_vec,acc_vec
-
-    
+    return time_vec,acc_vec    
 end
 
