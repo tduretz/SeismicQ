@@ -2,19 +2,30 @@ using SeismicQ,Plots
 
 function main()
 
-#P and S velocities
-Vp=7000
-Vs=4000
-        
-SeismicMatrix=GenMatrix(Vp,Vs)
+# Geophone position [m]
+listₓ = 0:100:5000;
 
-#distances from source
+# Time domain
+Δt  = 1e-3
+Nt  = 2000
+
+# Central frequency of the source [Hz]
+𝑓₀  = 10.
+
+# Velocities
+Vp = 7000 # m/s
+Vs = 4000 
+αp = 2e-4
+αs = 4e-4 # (π * f)/ (Q * V)
+
+#Selected distances from source
 d1=3000
 d2=5000
 
-#Number of samples and time increment of traces
-Nt=2000
-dt=1e-3
+TimeVec,AccVec=GenAttenuatedRicker(listₓ,Δt,Nt,Vp,Vs,αp,αs,𝑓₀)
+#SeismicMatrix=GenMatrix(Vp,Vs)
+
+dt=Δt
 
 #min and max frequencies to compute Q
 fqmin=5.0
@@ -28,8 +39,8 @@ println("Trace length is $Tmax s using $Nt samples")
 ind1=Int(trunc(d1/100))
 ind2=Int(trunc(d2/100))
 
-rec1=SeismicMatrix[ind1,2:Nt+1]
-rec2=SeismicMatrix[ind2,2:Nt+1]
+rec1=AccVec[ind1,1:Nt]
+rec2=AccVec[ind2,1:Nt]
 
 println("Trace 1 at offset $d1 m is found at index $ind1")
 println("Trace 2 at offset $d2 m is found at index $ind2")
