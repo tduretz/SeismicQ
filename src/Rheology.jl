@@ -51,15 +51,12 @@ provides the shear modulus G for use in
 
 """
 function f_shear(G,η,Δt) # Maxwell visco-elastic
-    #return 2*G
-    De=G*Δt/η
-     return 2*G/(1+2*De)
-    #return 2*G/(1+De)
+    DeN=η/(G*Δt) # numerical Deborah number
+    return 2.0*G*DeN/(1.0+DeN)
 end
+
  
 function f_relax(G,η,Δt)
-    #return 1-2*G*Δt/η
-    De=G*Δt/η
-    return 1/(1+2*De)
-    #return (1-2*G*Δt)/(1-De)
+    DeN=η/(G*Δt) # numerical Deborah number
+    return DeN/(1.0+DeN)
 end
