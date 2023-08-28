@@ -5,10 +5,7 @@ export Ricker
 
 include("Rheology.jl")
 export θs, χs, θb, χb
-export f_bulk
-export f_visc
-export f_shear
-export f_relax
+
 include("Spec.jl")
 export Getfreq, Spec, ComputeQgraph
 
