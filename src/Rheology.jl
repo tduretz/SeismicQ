@@ -1,7 +1,7 @@
 #---------------------------------------------------#
 
 @doc """
-    θs(G)
+    θs(G,Δt)
 
 Deviatoric part of the elastic constitutive update: 
 provides the shear modulus G for use in 
@@ -16,7 +16,7 @@ function θs(G,Δt)
 end
 
 @doc """
-θs(G,η,Δt)
+    θs(G,η,Δt)
 
 Deviatoric part of the Maxwell visco-elastic constitutive update: 
 used to compute
@@ -53,7 +53,7 @@ end
 Relaxation part of the deviatoric Maxwell visco-elastic constitutive update: 
 for use in the calculation of 
 ```math    
-Δτ = (DeN / (1+DeN)) τ_{OLD} + Δτ_{CONSTITUTIVE}
+Δτ = (DeN / (1+DeN)) τ_\mathrm{OLD} + Δτ_\mathrm{CONSTITUTIVE}
 ```
 with DeN a numerical Deborah number, equal to 
 ```math    
