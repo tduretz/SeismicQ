@@ -4,7 +4,7 @@ include("Sources.jl")
 export Ricker
 
 include("Rheology.jl")
-export θs, χs, θb, χb
+export θs, χs, ηs, θb, χb, ηb
 
 include("Spec.jl")
 export Getfreq, Spec, ComputeQgraph
