@@ -25,7 +25,7 @@ function MainSource()
            j = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0,l.y,Nc.y+1))) 
         
     # Source parameters
-    𝑓₀   = 200   # Central frequency of the source [Hz]
+    𝑓₀   = 100   # Central frequency of the source [Hz]
     t₀   = 1.2/𝑓₀
     σ₀   = l.x/100
     x₀   = l.x/2
@@ -38,17 +38,20 @@ function MainSource()
     K₀      = 1.e9
     G₀      = 1.e8
     De_s    = 1e-2 # Shear Deborah number
-    ηs₀     = De_s*G₀ / 𝑓₀
+    ηₘ₀     = De_s*G₀ / 𝑓₀
     Fb_b    = 1e-2 # Bulk Fatboy number
-    ηb₀     = Fb_b*K₀ / 𝑓₀
-    DevRheo = :MaxwellVE #:Elastic or :MaxwellVE
+    ηₖ₀     = Fb_b*K₀ / 𝑓₀
+   # DevRheo = :MaxwellVE #:Elastic or :MaxwellVE
     VolRheo = :KelvinVE  #:Elastic or :KelvinVE 
-     
+    
+    DevRheo = :Elastic #or :MaxwellVE
+    #VolRheo = :Elastic #or :KelvinVE 
+
     # Time domain
     c_eff = sqrt((K₀*(1+Fb_b)+4/3*G₀)/ρ₀) 
-    Δt    = min(1e10, 0.3*Δ.x/c_eff, 0.3*Δ.y/c_eff ) # Courant criteria from wavespeed
-    Nt    = 1000
-    Nout  = 100
+    Δt    = min(1e10, 0.1*Δ.x/c_eff, 0.1*Δ.y/c_eff ) # Courant criteria from wavespeed
+    Nt    = 10000
+    Nout  = 1000
     t     = -t₀
    
     # Storage on centers # +2 for ghost nodes for BCs
@@ -59,17 +62,19 @@ function MainSource()
     # Storage on i and j meshes
     K     = (i= ones(szi)*K₀,  j= ones(szj)*K₀ ) 
     G     = (i= ones(szi)*G₀,  j= ones(szj)*G₀ ) 
-    ηs    = (i= ones(szi)*ηs₀, j= ones(szj)*ηs₀)
-    ηb    = (i= ones(szi)*ηb₀, j= ones(szj)*ηb₀)
-    ∇V0   = (i=zeros(szi),     j=zeros(szj))
+    ηₘ    = (i= ones(szi)*ηₘ₀ , j= ones(szj)*ηₘ₀)
+    ηₖ    = (i= ones(szi)*ηₖ₀ , j= ones(szj)*ηₖ₀ )
     ∇V    = (i=zeros(szi),     j=zeros(szj))
     P     = (i=zeros(szi),     j=zeros(szj))
+    P0   = (i=zeros(szi),     j=zeros(szj))
     L     = (i=(xx=zeros(szi), xy=zeros(szi), yx=zeros(szi), yy=zeros(szi),zx=zeros(szi),zy=zeros(szi)),
              j=(xx=zeros(szj), xy=zeros(szj), yx=zeros(szj), yy=zeros(szj),zx=zeros(szj),zy=zeros(szj)))
     ε̇     = (i=(xx=zeros(szi), yy=zeros(szi), zz=zeros(szi), xy=zeros(szi),xz=zeros(szi),yz=zeros(szi)),
              j=(xx=zeros(szj), yy=zeros(szj), zz=zeros(szj), xy=zeros(szj),xz=zeros(szj),yz=zeros(szj))) 
     τ     = (i=(xx=zeros(szi), yy=zeros(szi), zz=zeros(szi), xy=zeros(szi),xz=zeros(szi),yz=zeros(szi)),
-             j=(xx=zeros(szj), yy=zeros(szj), zz=zeros(szj), xy=zeros(szj),xz=zeros(szj),yz=zeros(szj)))           
+             j=(xx=zeros(szj), yy=zeros(szj), zz=zeros(szj), xy=zeros(szj),xz=zeros(szj),yz=zeros(szj))) 
+    τ0    = (i=(xx=zeros(szi), yy=zeros(szi), zz=zeros(szi), xy=zeros(szi),xz=zeros(szi),yz=zeros(szi)),
+             j=(xx=zeros(szj), yy=zeros(szj), zz=zeros(szj), xy=zeros(szj),xz=zeros(szj),yz=zeros(szj)))                   
 
     # Storage on v and c meshes
     V     = ( v=(x=zeros(szv), y=zeros(szv), z=zeros(szv)),
@@ -95,8 +100,8 @@ function MainSource()
         devi = (G.i,Δt)
         devj = (G.j,Δt)
     elseif DevRheo == :MaxwellVE
-        devi = (G.i,ηs.i,Δt)
-        devj = (G.j,ηs.j,Δt)
+        devi = (G.i,ηₘ.i,Δt)
+        devj = (G.j,ηₘ.j,Δt)
     end
 
     # Select volumetric rheology
@@ -104,8 +109,8 @@ function MainSource()
         voli = (K.i,Δt)
         volj = (K.j,Δt)
     elseif VolRheo == :KelvinVE
-        voli = (K.i,ηb.i,Δt)
-        volj = (K.j,ηb.j,Δt)
+        voli = (K.i,ηₖ.i,Δt)
+        volj = (K.j,ηₖ.j,Δt)
     end
 
     # Time loop
@@ -113,14 +118,46 @@ function MainSource()
 
         # Update Time
         t += Δt
+        P0.i .= P.i
+        P0.j .= P.j
 
+        τ0.i.xx .= τ.i.xx
+        τ0.i.xy .= τ.i.xy
+        τ0.i.xz .= τ.i.xz
+        τ0.i.yy .= τ.i.yy
+        τ0.i.zz .= τ.i.zz
+        τ0.i.yz .= τ.i.yz
+
+        τ0.j.xx .= τ.j.xx
+        τ0.j.xy .= τ.j.xy
+        τ0.j.xz .= τ.j.xz
+        τ0.j.yy .= τ.j.yy
+        τ0.j.zz .= τ.j.zz
+        τ0.j.yz .= τ.j.yz 
+        
         # 2D Ricker with spatial support
         @.. f_ext.c = ρ.c*Ricker.( xc2d, x₀, yc2d, y₀, t, t₀, 𝑓₀, σ₀)
         @.. f_ext.v = ρ.v*Ricker.( xv2d, x₀, yv2d, y₀, t, t₀, 𝑓₀, σ₀)
         
-        # Old divergence
-        @.. ∇V0.i = ∇V.i  
-        @.. ∇V0.j = ∇V.j
+        # Inherited pressure (remove the instantaneous viscous contribution )
+       
+        @.. P0.i = P0.i + χb(voli...)*∇V.i 
+        @.. P0.j = P0.j + χb(volj...)*∇V.j
+
+        # Inherited deviatoric stress (remove the instantaneous viscous contribution)
+        @.. τ0.i.xx= τ0.i.xx - χs(devi...)*ε̇.i.xx
+        @.. τ0.i.xy= τ0.i.xy - χs(devi...)*ε̇.i.xy
+        @.. τ0.i.xz= τ0.i.xz - χs(devi...)*ε̇.i.xz
+        @.. τ0.i.yy= τ0.i.yy - χs(devi...)*ε̇.i.yy
+        @.. τ0.i.zz= τ0.i.zz - χs(devi...)*ε̇.i.zz
+        @.. τ0.i.yz= τ0.i.yz - χs(devi...)*ε̇.i.yz
+       
+        @.. τ0.j.xx= τ0.j.xx - χs(devj...)*ε̇.j.xx
+        @.. τ0.j.xy= τ0.j.xy - χs(devj...)*ε̇.j.xy
+        @.. τ0.j.xz= τ0.j.xz - χs(devj...)*ε̇.j.xz
+        @.. τ0.j.yy= τ0.j.yy - χs(devj...)*ε̇.j.yy
+        @.. τ0.j.zz= τ0.j.zz - χs(devj...)*ε̇.j.zz
+        @.. τ0.j.yz= τ0.j.yz - χs(devj...)*ε̇.j.yz
 
         # Velocity gradient components
         @.. L.i.xx[:,2:end-1] = (V.c.x[2:end,2:end-1] - V.c.x[1:end-1,2:end-1])/Δ.x
@@ -166,22 +203,28 @@ function MainSource()
         @.. ε̇.j.yz = 1//2*(L.j.zy)
       
         # Stress update
-        @.. τ.i.xx = θs(devi...)*(ε̇.i.xx) + χs(devi...)*τ.i.xx
-        @.. τ.j.xx = θs(devj...)*(ε̇.j.xx) + χs(devj...)*τ.j.xx
-        @.. τ.i.yy = θs(devi...)*(ε̇.i.yy) + χs(devi...)*τ.i.yy
-        @.. τ.j.yy = θs(devj...)*(ε̇.j.yy) + χs(devj...)*τ.j.yy
-        @.. τ.i.zz = θs(devi...)*(ε̇.i.zz) + χs(devi...)*τ.i.zz
-        @.. τ.j.zz = θs(devj...)*(ε̇.j.zz) + χs(devj...)*τ.j.zz
-        @.. τ.i.xy = θs(devi...)*(ε̇.i.xy) + χs(devi...)*τ.i.xy
-        @.. τ.j.xy = θs(devj...)*(ε̇.j.xy) + χs(devj...)*τ.j.xy
-        @.. τ.i.xz = θs(devi...)*(ε̇.i.xz) + χs(devi...)*τ.i.xz
-        @.. τ.j.xz = θs(devj...)*(ε̇.j.xz) + χs(devj...)*τ.j.xz
-        @.. τ.i.yz = θs(devi...)*(ε̇.i.yz) + χs(devi...)*τ.i.yz
-        @.. τ.j.yz = θs(devj...)*(ε̇.j.yz) + χs(devj...)*τ.j.yz
+        @.. τ.i.xx = ηs(devi...)*(ε̇.i.xx) + θs(devi...)*τ0.i.xx
+        @.. τ.j.xx = ηs(devj...)*(ε̇.j.xx) + θs(devj...)*τ0.j.xx
+
+        @.. τ.i.yy = ηs(devi...)*(ε̇.i.yy) + θs(devi...)*τ0.i.yy
+        @.. τ.j.yy = ηs(devj...)*(ε̇.j.yy) + θs(devj...)*τ0.j.yy
+        
+        @.. τ.i.zz = ηs(devi...)*(ε̇.i.zz) + θs(devi...)*τ0.i.zz
+        @.. τ.j.zz = ηs(devj...)*(ε̇.j.zz) + θs(devj...)*τ0.j.zz
+        
+        @.. τ.i.xy = ηs(devi...)*(ε̇.i.xy) + θs(devi...)*τ0.i.xy
+        @.. τ.j.xy = ηs(devj...)*(ε̇.j.xy) + θs(devj...)*τ0.j.xy
+        
+        @.. τ.i.xz = ηs(devi...)*(ε̇.i.xz) + θs(devi...)*τ0.i.xz
+        @.. τ.j.xz = ηs(devj...)*(ε̇.j.xz) + θs(devj...)*τ0.j.xz
+        
+        @.. τ.i.yz = ηs(devi...)*(ε̇.i.yz) + θs(devi...)*τ0.i.yz
+        @.. τ.j.yz = ηs(devj...)*(ε̇.j.yz) + θs(devj...)*τ0.j.yz
 
         # Pressure update 
-        @.. P.i    = P.i + θb(voli...)*∇V.i + χb(voli...)*∇V0.i
-        @.. P.j    = P.j + θb(volj...)*∇V.j + χb(volj...)*∇V0.j
+
+        @.. P.i    = θb(voli...)*P0.i - ηb(voli...)*∇V.i 
+        @.. P.j    = θb(volj...)*P0.j - ηb(volj...)*∇V.j 
 
         # Linear momentum balance
         @.. V.v.x[2:end-1,2:end-1] = (V.v.x[2:end-1,2:end-1] 
