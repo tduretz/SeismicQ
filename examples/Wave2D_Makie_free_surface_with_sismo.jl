@@ -173,8 +173,8 @@ function MainSource()
         @.. L.j.zx[2:end-1,:] = (V.v.z[2:end,:] - V.v.z[1:end-1,:])/Δ.x
   
         
-        # L.j.xy[:,end] .= (-L.j.yx[:,end] .* ηs(dev.j...)[:,end] .- theta_s[:,end]  .* τ0.j.xy[:,end]) ./ ηs(dev.j...)[:,end]
-        # L.j.zy[:,end] .= -θs(dev.j...)[:,end].*  τ0.j.yz[:,end] ./ ηs(dev.j...)[:,end]
+        L.j.xy[:,end] .= (-L.j.yx[:,end] .* ηs(dev.j...)[:,end] .- θs(dev.j...)[:,end]  .* τ0.j.xy[:,end]) ./ ηs(dev.j...)[:,end]
+        L.j.zy[:,end] .= -θs(dev.j...)[:,end].*  τ0.j.yz[:,end] ./ ηs(dev.j...)[:,end]
         L.j.yy[:,end] .= (- 3.0 * L.j.xx[:,end] .* ηb(vol.j...)[:,end] + 2.0 * L.j.xx[:,end] .* ηs(dev.j...)[:,end] 
                          + 3.0 * P0.j[:,end]   .* θb(vol.j...)[:,end] - 3.0 * θs(dev.j...)[:,end]   .* τ0.j.yy[:,end]) ./
                          (3.0 * ηb(vol.j...)[:,end] + 4.0 * ηs(dev.j...)[:,end])
@@ -192,6 +192,7 @@ function MainSource()
         @.. ∇V.j   = L.j.xx + L.j.yy
 
         # Deviatoric strain rate 
+        
         @.. ε̇.i.xx = L.i.xx - 1//3*∇V.i
         @.. ε̇.j.xx = L.j.xx - 1//3*∇V.j
 
@@ -215,10 +216,7 @@ function MainSource()
 
         for grid=1:2, comp=1:length(τ0.i) 
              @.. τ[grid][comp] = ηs(dev[grid]...)*(ε̇[grid][comp]) + θs(dev[grid]...)*τ0[grid][comp]
-        end
-       
-
-        
+        end        
         # Pressure update 
         for grid=1:2
             @.. P[grid]  = θb(vol[grid]...)*P0[grid] - ηb(vol[grid]...)*∇V[grid]
