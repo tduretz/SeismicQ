@@ -14,7 +14,7 @@ function MainSource()
     wave_colors     = cgrad(juliadivcmap, length(juliadivcmap), categorical=false, rev=false)
     
     # Spatial extent
-    l  = (x = 100, y = 25)
+    l  = (x = 100, y = 50)
 
     # Discretization
     Nc  = (x = 400, y = 100) 
@@ -25,12 +25,12 @@ function MainSource()
            j = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0,l.y,Nc.y+1))) 
         
     # Source parameters
-    𝑓₀   = 100  # Central frequency of the source [Hz]
+    𝑓₀   = 50  # Central frequency of the source [Hz]
     t₀   = 1.2/𝑓₀
     σ₀   = l.x/100
     x₀   = l.x/2
     y₀   = l.y/2
-    src  = (i=Int((Nc.x/2)+1),j=Int((Nc.y/2)+1))
+    src  = (i=Int((Nc.x/2)+1),j=Int((Nc.y/4)+1))
     facS = (v=(x=0.0,y=1.0,z=1.0),c=(x=0.0,y=1.0,z=1.0))
     
   
@@ -54,17 +54,17 @@ function MainSource()
     c_eff = sqrt((K₀*(1+Fb_b)+4/3*G₀)/ρ₀) 
     Δt    = min(1e10, 0.1*Δ.x/c_eff, 0.1*Δ.y/c_eff ) # Courant criteria from wavespeed
     Nt    = 10001
-    Nout  = 250
+    Nout  = 500
     t     = -t₀
 
 
     # Parameters for Sismo.
     Noutsismo       = 10
     Ntsismo         = Int((Nt-1)/Noutsismo)
-    Xs              = LinRange(0,l.x,Nc.x+1)*ones(1,Ntsismo)   # x_coordinates [m]
+    Xs              = LinRange(0,l.x,Nc.x+1)*ones(1,Ntsismo).*1.0   # x_coordinates [m]
     Ns              = size(Xs,1)
-    velocity_matrix = (x = zeros(Ns, Ntsismo), y=zeros(Ns, Ntsismo), z=zeros(Ns, Ntsismo)) 
-    arrival_time    = zeros(Ns,Ntsismo)
+    velocity_matrix = (x = zeros(Ns, Ntsismo).*1.0, y=zeros(Ns, Ntsismo).*1.0, z=zeros(Ns, Ntsismo).*1.0) 
+    arrival_time    = zeros(Ns,Ntsismo).*1.0
     ksismo          = 0
    
     # Storage on centers # +2 for ghost nodes for BCs
@@ -96,10 +96,13 @@ function MainSource()
     ρ     = (v=ones(szv)*ρ₀, c=ones(szc)*ρ₀)
     f_ext = (v=zeros(szv)  , c=zeros(szc))
     # BC
-    Lbc        = 1.
+    Lbc        = 3.
     # BC on v and c mesh
-    bc_filt_V   = (v=Cerjean2D(X.v,Lbc,l,Δ),c=Cerjean2D(X.c,Lbc,l,Δ))
-    bc_filt_tau = (i=Cerjean2D(X.i,Lbc,l,Δ),j=Cerjean2D(X.j,Lbc,l,Δ))
+    Δ0 = (x=0,y=0)
+    Δi = (x=0,y=Δ.y/2)
+    Δj = (x=Δ.x/2,y=0)
+    bc_filt_V   = (v=Cerjean2D(X.v,Lbc,l,Δ0),c=Cerjean2D(X.c,Lbc,l,Δ))
+    bc_filt_tau = (i=Cerjean2D(X.i,Lbc,l,Δi),j=Cerjean2D(X.j,Lbc,l,Δj))
 
     # Compute Ricker function with 2D spatial support
     f_ext = (v=zeros(szv)  , c=zeros(szc))
@@ -110,31 +113,18 @@ function MainSource()
 
     # Select deviatoric rheology
     if DevRheo == :Elastic
-        devi = (G.i,Δt)
-        devj = (G.j,Δt)
+        dev = (i=(G.i,Δt), j=(G.j,Δt)) 
     elseif DevRheo == :MaxwellVE
-        devi = (G.i,ηₘ.i,Δt)
-        devj = (G.j,ηₘ.j,Δt)
-        
+        dev = (i=(G.i,ηₘ.i,Δt), j= (G.j,ηₘ.j,Δt))
     end
 
     # Select volumetric rheology
     if VolRheo == :Elastic
-        voli = (K.i,Δt)
-        volj = (K.j,Δt)
+        vol = (i=(K.i,Δt),j=(K.j,Δt))
     elseif VolRheo == :KelvinVE
-        voli = (K.i,ηₖ.i,Δt)
-        volj = (K.j,ηₖ.j,Δt)
+        vol = (i=(K.i,ηₖ.i,Δt),j=(K.j,ηₖ.j,Δt))
     end
 
-    eta_s      = zeros(size(ηₘ.j))
-    theta_s    = zeros(size(ηₘ.j))
-    eta_s     .= ηs(devj...)
-    theta_s   .= θs(devj...)
-    eta_b      = zeros(size(ηₖ.j))
-    theta_b    = zeros(size(ηₖ.j))
-    eta_b     .= ηb(devj...)
-    theta_b   .= θb(devj...)
 
     # Time loop
     @views @time for it=1:Nt
@@ -143,20 +133,10 @@ function MainSource()
         t += Δt
         P0.i .= P.i
         P0.j .= P.j
-
-        τ0.i.xx .= τ.i.xx
-        τ0.i.xy .= τ.i.xy
-        τ0.i.xz .= τ.i.xz
-        τ0.i.yy .= τ.i.yy
-        τ0.i.zz .= τ.i.zz
-        τ0.i.yz .= τ.i.yz
-
-        τ0.j.xx .= τ.j.xx
-        τ0.j.xy .= τ.j.xy
-        τ0.j.xz .= τ.j.xz
-        τ0.j.yy .= τ.j.yy
-        τ0.j.zz .= τ.j.zz
-        τ0.j.yz .= τ.j.yz 
+        for grid=1:2, comp=1:length(τ0.i) 
+            τ0[grid][comp] .= τ[grid][comp]
+        end
+    
         
         # 2D Ricker with spatial support
         @.. f_ext.c = ρ.c*Ricker.( xc2d, x₀, yc2d, y₀, t, t₀, 𝑓₀, σ₀)
@@ -164,23 +144,14 @@ function MainSource()
         
         # Inherited pressure (remove the instantaneous viscous contribution )
        
-        @.. P0.i = P0.i + χb(voli...)*∇V.i 
-        @.. P0.j = P0.j + χb(volj...)*∇V.j
+        @.. P0.i = P0.i + χb(vol.i...)*∇V.i 
+        @.. P0.j = P0.j + χb(vol.j...)*∇V.j
 
         # Inherited deviatoric stress (remove the instantaneous viscous contribution)
-        @.. τ0.i.xx= τ0.i.xx - χs(devi...)*ε̇.i.xx
-        @.. τ0.i.xy= τ0.i.xy - χs(devi...)*ε̇.i.xy
-        @.. τ0.i.xz= τ0.i.xz - χs(devi...)*ε̇.i.xz
-        @.. τ0.i.yy= τ0.i.yy - χs(devi...)*ε̇.i.yy
-        @.. τ0.i.zz= τ0.i.zz - χs(devi...)*ε̇.i.zz
-        @.. τ0.i.yz= τ0.i.yz - χs(devi...)*ε̇.i.yz
-       
-        @.. τ0.j.xx= τ0.j.xx - χs(devj...)*ε̇.j.xx
-        @.. τ0.j.xy= τ0.j.xy - χs(devj...)*ε̇.j.xy
-        @.. τ0.j.xz= τ0.j.xz - χs(devj...)*ε̇.j.xz
-        @.. τ0.j.yy= τ0.j.yy - χs(devj...)*ε̇.j.yy
-        @.. τ0.j.zz= τ0.j.zz - χs(devj...)*ε̇.j.zz
-        @.. τ0.j.yz= τ0.j.yz - χs(devj...)*ε̇.j.yz
+        for grid=1:2, comp=1:length(τ0.i) 
+            @.. τ0[grid][comp]= τ0[grid][comp] - χs(dev[grid]...)*ε̇[grid][comp]
+        end
+        
 
         # Velocity gradient components
         @.. L.i.xx[:,2:end-1] = (V.c.x[2:end,2:end-1] - V.c.x[1:end-1,2:end-1])/Δ.x
@@ -202,11 +173,18 @@ function MainSource()
         @.. L.j.zx[2:end-1,:] = (V.v.z[2:end,:] - V.v.z[1:end-1,:])/Δ.x
   
         
-        L.j.xy[:,end] .= (-L.j.yx[:,end] .* eta_s[:,end] .- theta_s[:,end].*τ0.j.xy[:,end]) ./ eta_s[:,end]
-        L.j.zy[:,end] .= -theta_s[:,end].*  τ0.j.yz[:,end] ./ eta_s[:,end]
-        L.j.yy[:,end] .= (- 3.0 * L.j.xx[:,end] .* eta_b[:,end] + 2.0 * L.j.xx[:,end] .* eta_s[:,end] 
-                         + 3.0 * P0.j[:,end]   .* theta_b[:,end] - 3.0 * theta_s[:,end]   .* τ0.j.yy[:,end]) ./
-                         (3.0 * eta_b[:,end] + 4.0 * eta_s[:,end])
+        # L.j.xy[:,end] .= (-L.j.yx[:,end] .* ηs(dev.j...)[:,end] .- theta_s[:,end]  .* τ0.j.xy[:,end]) ./ ηs(dev.j...)[:,end]
+        # L.j.zy[:,end] .= -θs(dev.j...)[:,end].*  τ0.j.yz[:,end] ./ ηs(dev.j...)[:,end]
+        L.j.yy[:,end] .= (- 3.0 * L.j.xx[:,end] .* ηb(vol.j...)[:,end] + 2.0 * L.j.xx[:,end] .* ηs(dev.j...)[:,end] 
+                         + 3.0 * P0.j[:,end]   .* θb(vol.j...)[:,end] - 3.0 * θs(dev.j...)[:,end]   .* τ0.j.yy[:,end]) ./
+                         (3.0 * ηb(vol.j...)[:,end] + 4.0 * ηs(dev.j...)[:,end])
+
+        L.i.xy[:,end-1] .= (-L.i.yx[:,end-1] .* ηs(dev.i...)[:,end-1] .- θs(dev.i...)[:,end-1].*τ0.i.xy[:,end-1]) ./ ηs(dev.i...)[:,end-1]
+        L.i.zy[:,end-1] .= -θs(dev.i...)[:,end-1].*  τ0.i.yz[:,end-1] ./ ηs(dev.i...)[:,end-1]
+        L.i.yy[:,end-1] .= (- 3.0 * L.i.xx[:,end-1] .* ηb(vol.i...)[:,end-1] + 2.0 * L.i.xx[:,end-1] .* ηs(dev.i...)[:,end-1]
+                         + 3.0 * P0.i[:,end-1]   .* θb(vol.i...)[:,end-1]  - 3.0 * θs(dev.i...)[:,end-1]  .* τ0.i.yy[:,end-1]) ./
+                         (3.0 * ηb(vol.i...)[:,end-1]  + 4.0 * ηs(dev.i...)[:,end-1])
+        
         
         
         # Divergence
@@ -234,29 +212,18 @@ function MainSource()
         @.. ε̇.j.yz = 1//2*(L.j.zy)
       
         # Stress update
-        @.. τ.i.xx = ηs(devi...)*(ε̇.i.xx) + θs(devi...)*τ0.i.xx
-        @.. τ.j.xx = ηs(devj...)*(ε̇.j.xx) + θs(devj...)*τ0.j.xx
 
-        @.. τ.i.yy = ηs(devi...)*(ε̇.i.yy) + θs(devi...)*τ0.i.yy
-        @.. τ.j.yy = ηs(devj...)*(ε̇.j.yy) + θs(devj...)*τ0.j.yy
-        
-        @.. τ.i.zz = ηs(devi...)*(ε̇.i.zz) + θs(devi...)*τ0.i.zz
-        @.. τ.j.zz = ηs(devj...)*(ε̇.j.zz) + θs(devj...)*τ0.j.zz
-        
-        @.. τ.i.xy = ηs(devi...)*(ε̇.i.xy) + θs(devi...)*τ0.i.xy
-        @.. τ.j.xy = ηs(devj...)*(ε̇.j.xy) + θs(devj...)*τ0.j.xy
-        
-        @.. τ.i.xz = ηs(devi...)*(ε̇.i.xz) + θs(devi...)*τ0.i.xz
-        @.. τ.j.xz = ηs(devj...)*(ε̇.j.xz) + θs(devj...)*τ0.j.xz
-        
-        @.. τ.i.yz = ηs(devi...)*(ε̇.i.yz) + θs(devi...)*τ0.i.yz
-        @.. τ.j.yz = ηs(devj...)*(ε̇.j.yz) + θs(devj...)*τ0.j.yz
+        for grid=1:2, comp=1:length(τ0.i) 
+             @.. τ[grid][comp] = ηs(dev[grid]...)*(ε̇[grid][comp]) + θs(dev[grid]...)*τ0[grid][comp]
+        end
+       
 
         
         # Pressure update 
-
-        @.. P.i    = θb(voli...)*P0.i - ηb(voli...)*∇V.i 
-        @.. P.j    = θb(volj...)*P0.j - ηb(volj...)*∇V.j 
+        for grid=1:2
+            @.. P[grid]  = θb(vol[grid]...)*P0[grid] - ηb(vol[grid]...)*∇V[grid]
+        end 
+        #@.. P.j    = θb(vol.j...)*P0.j - ηb(vol.j...)*∇V.j 
 
 
         τ.j.xy[:,end] .= 0.
@@ -270,6 +237,7 @@ function MainSource()
                                     + (τ.i.xy[2:end-1,3:end-1]-τ.i.xy[2:end-1,2:end-2])/Δ.y 
                                     - (P.j[3:end-1,2:end-1]-P.j[2:end-2,2:end-1])/Δ.x 
                                     - facS.v.x*f_ext.v[2:end-1,2:end-1]))
+
         @.. V.c.x[2:end-1,2:end-1] = (V.c.x[2:end-1,2:end-1] 
                                     + Δt/ρ.c[2:end-1,2:end-1]
                                     *((τ.i.xx[2:end,2:end-1]-τ.i.xx[1:end-1,2:end-1])/Δ.x
@@ -333,28 +301,17 @@ function MainSource()
 
     
         # Absorbing boundary Cerjean et al. (1985)
-        @..  V.v.x  = V.v.x  * bc_filt_V.v 
-        @..  V.v.y  = V.v.y  * bc_filt_V.v 
-        @..  V.v.z  = V.v.z  * bc_filt_V.v
-        @..  V.c.x  = V.c.x  * bc_filt_V.c 
-        @..  V.c.y  = V.c.y  * bc_filt_V.c 
-        @..  V.c.z  = V.c.z  * bc_filt_V.c  
+        for grid=1:2, comp=1:length(V.v) 
+            @..  V[grid][comp] = V[grid][comp]  * bc_filt_V[grid] 
+        end 
+ 
 
         @..  P.i    = P.i    *  bc_filt_tau.i 
-        @..  τ.i.xx = τ.i.xx *  bc_filt_tau.i
-        @..  τ.i.yy = τ.i.yy *  bc_filt_tau.i
-        @..  τ.i.zz = τ.i.zz *  bc_filt_tau.i
-        @..  τ.i.xy = τ.i.xy *  bc_filt_tau.i
-        @..  τ.i.xz = τ.i.xz *  bc_filt_tau.i
-        @..  τ.i.yz = τ.i.yz *  bc_filt_tau.i
-
         @..  P.j    = P.j    *  bc_filt_tau.j 
-        @..  τ.j.xx = τ.j.xx *  bc_filt_tau.j
-        @..  τ.j.yy = τ.j.yy *  bc_filt_tau.j
-        @..  τ.j.zz = τ.j.zz *  bc_filt_tau.j
-        @..  τ.j.xy = τ.j.xy *  bc_filt_tau.j
-        @..  τ.j.xz = τ.j.xz *  bc_filt_tau.j
-        @..  τ.j.yz = τ.j.yz *  bc_filt_tau.j
+        for grid=1:2, comp=1:length(τ.i) 
+            @..  τ[grid][comp] *= bc_filt_V[grid] 
+        end 
+
 
         # Visualisation
         if mod(it, Nout)==0 && visu==true
@@ -401,28 +358,29 @@ function MainSource()
     valimy = max(abs(maximum(velocity_matrix.y)),abs(minimum(velocity_matrix.y)))
     valimz = max(abs(maximum(velocity_matrix.z)),abs(minimum(velocity_matrix.z)))
 
-     resol=200 
-             f = Figure(resolution = (l.x/l.y*resol*3, resol), fontsize=15)
+     resol=500 
+             f = Figure(resolution = (resol,resol), fontsize=15)
 
              ax1 = Axis(f[1, 1],  title = L" vx [m/s]", xlabel = L"$x$ [m]", ylabel = L"$t$ [s]")
-             hm = GLMakie.heatmap!(ax1,  velocity_matrix.x, colormap = wave_colors,colorrange=(-3.e-5,3.e-5))
-        
-            ax2 = Axis(f[1, 2],  title = L" vy [m/s]", xlabel = L"$x$ [m]", ylabel = L"$t$ [s]")
-             hm = GLMakie.heatmap!(ax2,velocity_matrix.y, colormap = wave_colors,colorrange=(-3.e-5,3.e-5))
-
-            ax3 = Axis(f[1, 3], title = L" vz [m/s]", xlabel = L"$x$ [m]", ylabel = L"$t$ [m]")
-            hm = GLMakie.heatmap!(ax3, velocity_matrix.z, colormap = wave_colors,colorrange=(-3.e-5,3.e-5))
-        
-             GLMakie.Colorbar(f[1, 4], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
+             hm = GLMakie.heatmap!(ax1, Xs[:,1], -arrival_time[1,:], velocity_matrix.x, colormap = wave_colors,colorrange=(-valimx,valimx))
+             GLMakie.Colorbar(f[1, 2], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
+           
+            ax2 = Axis(f[2, 1],  title = L" vy [m/s]", xlabel = L"$x$ [m]", ylabel = L"$t$ [s]")
+             hm = GLMakie.heatmap!(ax2,Xs[:,1], -arrival_time[1,:],velocity_matrix.y, colormap = wave_colors,colorrange=(-valimy,valimy))
+             GLMakie.Colorbar(f[2, 2], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
+           
+             ax3 = Axis(f[3, 1], title = L" vz [m/s]", xlabel = L"$x$ [m]", ylabel = L"$t$ [m]")
+            hm = GLMakie.heatmap!(ax3, Xs[:,1], -arrival_time[1,:],  velocity_matrix.z, colormap = wave_colors,colorrange=(-valimz,valimz))
+             GLMakie.Colorbar(f[3, 2], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
         #  # GLMakie.colgap!(f.layout, 20)
          display(f)
 
 end
 
 function Cerjean2D(X,Lbc,l,Δ)
-    return ((1.0 .- exp.(-(X.x*ones(size(X.y))'.-0*l.x).^2/Lbc.^2))
-         .*(1.0 .- exp.(-(X.x*ones(size(X.y))' .-  l.x).^2/Lbc.^2))
-         .*(1.0 .- exp.(-(ones(size(X.x))*X.y' .-0*l.y).^2/Lbc.^2))
+    return ((1.0 .- exp.(-(X.x*ones(size(X.y))'.- (0*l.x+Δ.x/2)).^2/Lbc.^2))
+         .*(1.0 .- exp.(-(X.x*ones(size(X.y))' .- (l.x-Δ.x/2)).^2/Lbc.^2))
+         .*(1.0 .- exp.(-(ones(size(X.x))*X.y' .- (0*l.y+Δ.y/2)).^2/Lbc.^2))
          )
          #.*(1.0 .- exp.(-(ones(size(X.x))*X.y' .-  l.y).^2/Lbc.^2))
 end
