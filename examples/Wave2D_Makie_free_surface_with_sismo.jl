@@ -242,8 +242,14 @@ function MainSource()
         @.. τ.i.yz = ηs(devi...)*(ε̇.i.yz) + θs(devi...)*τ0.i.yz
         @.. τ.j.yz = ηs(devj...)*(ε̇.j.yz) + θs(devj...)*τ0.j.yz
 
+<<<<<<< HEAD
        
 
+=======
+        τ.j.xy[:,1:2] .= 0.
+        τ.j.yz[:,1:2] .= 0.
+        τ.j.yy[:,1:2] .= 0.
+>>>>>>> 5029644d68fc5060cd663a5fa4d5f7c1b99cc9ec
         # Pressure update 
 
         @.. P.i    = θb(voli...)*P0.i - ηb(voli...)*∇V.i 
