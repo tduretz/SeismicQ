@@ -102,7 +102,7 @@ end
     ``` 
 """
 function θs(G,Δt)
-    return 1.
+    return G./G
 end
 
 @doc raw"""
@@ -228,7 +228,7 @@ end
     ```
 """
 function θb(K,Δt) 
-    return 1.
+    return K./K
 end
 
 @doc raw"""
