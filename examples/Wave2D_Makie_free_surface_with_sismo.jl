@@ -3,7 +3,7 @@ Makie.update_theme!(fonts = (regular = texfont(), bold = texfont(:bold), italic 
 
 function MainSource()
     visu     = true
-    printfig = false  # print figures to disk
+    printfig = true  # print figures to disk
     path     = "./runs/"
     juliadivcmap    = zeros(RGB{Float64}, 5)
     juliadivcmap[1] = RGBA{Float64}(0/255,150/255,0/255, 1.)  
@@ -14,10 +14,10 @@ function MainSource()
     wave_colors     = cgrad(juliadivcmap, length(juliadivcmap), categorical=false, rev=false)
     
     # Spatial extent
-    l  = (x = 25, y = 25)
+    l  = (x = 100, y = 25)
 
     # Discretization
-    Nc  = (x = 100, y = 100) 
+    Nc  = (x = 200, y = 200) 
     Δ   = (x = l.x/Nc.x, y = l.y/Nc.y, z=1.0)
     X   = (v = (x= LinRange(0,l.x,Nc.x+1)             , y= LinRange(0,l.y,Nc.y+1)),
            c = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2)),
@@ -45,16 +45,16 @@ function MainSource()
     Fb_b    = 1e-2 # Bulk Fatboy number
     ηₖ₀     = Fb_b*K₀ / 𝑓₀
    # DevRheo = :MaxwellVE #:Elastic or :MaxwellVE
-    VolRheo = :KelvinVE  #:Elastic or :KelvinVE 
+   # VolRheo = :KelvinVE  #:Elastic or :KelvinVE 
     
     DevRheo = :Elastic #or :MaxwellVE
-    #VolRheo = :Elastic #or :KelvinVE 
+    VolRheo = :Elastic #or :KelvinVE 
 
     # Time domain
     c_eff = sqrt((K₀*(1+Fb_b)+4/3*G₀)/ρ₀) 
     Δt    = min(1e10, 0.1*Δ.x/c_eff, 0.1*Δ.y/c_eff ) # Courant criteria from wavespeed
     Nt    = 10001
-    Nout  = 1000
+    Nout  = 250
     t     = -t₀
 
 
@@ -234,10 +234,17 @@ function MainSource()
         @.. τ.i.yz = ηs(devi...)*(ε̇.i.yz) + θs(devi...)*τ0.i.yz
         @.. τ.j.yz = ηs(devj...)*(ε̇.j.yz) + θs(devj...)*τ0.j.yz
 
+       
+
         # Pressure update 
 
         @.. P.i    = θb(voli...)*P0.i - ηb(voli...)*∇V.i 
         @.. P.j    = θb(volj...)*P0.j - ηb(volj...)*∇V.j 
+
+
+        τ.j.xy[:,end-1:end] .= 0.
+        τ.j.yz[:,end-1:end] .= 0.
+        τ.j.yy[:,end-1:end] .= P.j[:,end-1:end]
 
         # Linear momentum balance
         @.. V.v.x[2:end-1,2:end-1] = (V.v.x[2:end-1,2:end-1] 
