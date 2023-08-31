@@ -190,6 +190,14 @@ function MainSource()
 
         @.. L.i.zx[:,2:end-1] = (V.c.z[2:end,2:end-1] - V.c.z[1:end-1,2:end-1])/Δ.x
         @.. L.j.zx[2:end-1,:] = (V.v.z[2:end,:] - V.v.z[1:end-1,:])/Δ.x
+  
+      
+        L.j.xy[:,end] = (-L.j.yx[:,end] .* ηs(devj...) - θs(devj...).*τ0.j.xy[:,end]) ./ ηs(devj...)
+        L.j.zy[:,end] = -θs(devj...).*  τ0.j.yz[:,end] ./ ηs(devj...)
+        L.j.yy[:,end] = (- 3.0 * L.j.xx[:,end] .* ηb(volj...) + 2.0 * L.j.xx[:,end] .* ηs(devj...) 
+                         + 3.0 * P0.j[:,end]   .* θb(volj...) - 3.0 * θs(devj...)   .* τ0.j.yy[:,end]) ./
+                         (3.0 * ηb(volj...) + 4.0 * ηs(devj...))
+        
         
         # Divergence
         @.. ∇V.i   = L.i.xx + L.i.yy
@@ -291,6 +299,28 @@ function MainSource()
         @.. V.v.y[2:end-1,end] = V.v.y[2:end-1,end-1]
         @.. V.v.x[2:end-1,end] = V.v.x[2:end-1,end-1]
         @.. V.v.z[2:end-1,end] = V.v.z[2:end-1,end-1]
+
+       
+        @.. V.v.x[2:end-1,2:end-1] = (V.v.x[2:end-1,2:end-1] 
+        + Δt/ρ.v[2:end-1,2:end-1]
+        *((τ.j.xx[3:end-1,2:end-1]-τ.j.xx[2:end-2,2:end-1])/Δ.x
+        + (τ.i.xy[2:end-1,3:end-1]-τ.i.xy[2:end-1,2:end-2])/Δ.y 
+        - (P.j[3:end-1,2:end-1]-P.j[2:end-2,2:end-1])/Δ.x 
+        - facS.v.x*f_ext.v[2:end-1,2:end-1]))
+
+        @.. V.v.y[2:end-1,end] = (V.v.y[2:end-1,end] 
+        + Δt/ρ.v[2:end-1,end]
+        *((τ.j.xy[3:end-1,2:end-1]-τ.j.xy[2:end-2,2:end-1])/Δ.x
+        + (τ.i.yy[2:end-1,3:end-1]-τ.i.yy[2:end-1,2:end-2])/Δ.y 
+        - (P.i[2:end-1,3:end-1]-P.i[2:end-1,2:end-2])/Δ.y 
+        - facS.v.y*f_ext.v[2:end-1,2:end-1]))
+
+        @.. V.v.z[2:end-1,2:end-1] = (V.v.z[2:end-1,2:end-1] 
+                                    + Δt/ρ.v[2:end-1,2:end-1]
+                                    *((τ.j.xz[3:end-1,2:end-1]-τ.j.xz[2:end-2,2:end-1])/Δ.x
+                                    + (τ.i.yz[2:end-1,3:end-1]-τ.i.yz[2:end-1,2:end-2])/Δ.y 
+                                    - facS.v.z* f_ext.v[2:end-1,2:end-1]))
+
 
     
         # Absorbing boundary Cerjean et al. (1985)
