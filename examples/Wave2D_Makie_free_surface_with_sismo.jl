@@ -225,10 +225,10 @@ function MainSource()
         end 
         #@.. P.j    = θb(vol.j...)*P0.j - ηb(vol.j...)*∇V.j 
 
-
-        τ.j.xy[:,end] .= 0.
-        τ.j.yz[:,end] .= 0.
-        τ.j.yy[:,end] .= P.j[:,end]
+        # these stresses are on the free surface) 
+        # τ.j.xy[:,end] .= 0.
+        # τ.j.yz[:,end] .= 0.
+        # τ.j.yy[:,end] .= P.j[:,end]
 
         # Linear momentum balance
         @.. V.v.x[2:end-1,2:end-1] = (V.v.x[2:end-1,2:end-1] 
