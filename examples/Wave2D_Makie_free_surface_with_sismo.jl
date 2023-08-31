@@ -17,7 +17,7 @@ function MainSource()
     l  = (x = 100, y = 25)
 
     # Discretization
-    Nc  = (x = 200, y = 200) 
+    Nc  = (x = 400, y = 100) 
     Δ   = (x = l.x/Nc.x, y = l.y/Nc.y, z=1.0)
     X   = (v = (x= LinRange(0,l.x,Nc.x+1)             , y= LinRange(0,l.y,Nc.y+1)),
            c = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2)),
@@ -25,7 +25,7 @@ function MainSource()
            j = (x= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2) , y= LinRange(0,l.y,Nc.y+1))) 
         
     # Source parameters
-    𝑓₀   = 100   # Central frequency of the source [Hz]
+    𝑓₀   = 100  # Central frequency of the source [Hz]
     t₀   = 1.2/𝑓₀
     σ₀   = l.x/100
     x₀   = l.x/2
@@ -127,12 +127,14 @@ function MainSource()
         volj = (K.j,ηₖ.j,Δt)
     end
 
-    eta_s    = zeros(size(ηₘ.j))
+    eta_s      = zeros(size(ηₘ.j))
     theta_s    = zeros(size(ηₘ.j))
-    eta_b    = zeros(size(ηₖ.j))
+    eta_s     .= ηs(devj...)
+    theta_s   .= θs(devj...)
+    eta_b      = zeros(size(ηₖ.j))
     theta_b    = zeros(size(ηₖ.j))
-    eta_b   .= ηb(devj...)
-    theta_b .= θb(devj...)
+    eta_b     .= ηb(devj...)
+    theta_b   .= θb(devj...)
 
     # Time loop
     @views @time for it=1:Nt
@@ -250,18 +252,16 @@ function MainSource()
         @.. τ.i.yz = ηs(devi...)*(ε̇.i.yz) + θs(devi...)*τ0.i.yz
         @.. τ.j.yz = ηs(devj...)*(ε̇.j.yz) + θs(devj...)*τ0.j.yz
 
-        τ.j.xy[:,1:2] .= 0.
-        τ.j.yz[:,1:2] .= 0.
-        τ.j.yy[:,1:2] .= 0.
+        
         # Pressure update 
 
         @.. P.i    = θb(voli...)*P0.i - ηb(voli...)*∇V.i 
         @.. P.j    = θb(volj...)*P0.j - ηb(volj...)*∇V.j 
 
 
-        τ.j.xy[:,end-1:end] .= 0.
-        τ.j.yz[:,end-1:end] .= 0.
-        τ.j.yy[:,end-1:end] .= P.j[:,end-1:end]
+        τ.j.xy[:,end] .= 0.
+        τ.j.yz[:,end] .= 0.
+        τ.j.yy[:,end] .= P.j[:,end]
 
         # Linear momentum balance
         @.. V.v.x[2:end-1,2:end-1] = (V.v.x[2:end-1,2:end-1] 
@@ -311,18 +311,18 @@ function MainSource()
 
        
         @.. V.v.x[2:end-1,end] = (V.v.x[2:end-1,end] 
-        + Δt/ρ.v[2:end-1,end]
-        *((τ.j.xx[3:end-1,end]-τ.j.xx[2:end-2,end])/Δ.x
-        + (τ.i.xy[2:end-1,end]-τ.i.xy[2:end-1,end-1])/Δ.y 
-        - (P.j[3:end-1,end]-P.j[2:end-2,end])/Δ.x 
-        - facS.v.x*f_ext.v[2:end-1,end]))
+                                 + Δt/ρ.v[2:end-1,end]
+                                 *((τ.j.xx[3:end-1,end]-τ.j.xx[2:end-2,end])/Δ.x
+                                 + (τ.i.xy[2:end-1,end]-τ.i.xy[2:end-1,end-1])/Δ.y 
+                                 - (P.j[3:end-1,end]-P.j[2:end-2,end])/Δ.x 
+                                 - facS.v.x*f_ext.v[2:end-1,end]))
 
         @.. V.v.y[2:end-1,end] = (V.v.y[2:end-1,end] 
-        + Δt/ρ.v[2:end-1,end]
-        *((τ.j.xy[3:end-1,end]-τ.j.xy[2:end-2,end])/Δ.x
-        + (τ.i.yy[2:end-1,end]-τ.i.yy[2:end-2,end-1])/Δ.y 
-        - (P.i[2:end-1,end]   -P.i[2:end-1,end-1])/Δ.y 
-        - facS.v.y*f_ext.v[2:end-1,end]))
+                                 + Δt/ρ.v[2:end-1,end]
+                                 *((τ.j.xy[3:end-1,end]-τ.j.xy[2:end-2,end])/Δ.x
+                                 + (τ.i.yy[2:end-1,end]-τ.i.yy[2:end-2,end-1])/Δ.y 
+                                 - (P.i[2:end-1,end]   -P.i[2:end-1,end-1])/Δ.y 
+                                 - facS.v.y*f_ext.v[2:end-1,end]))
 
         @.. V.v.z[2:end-1,end] = (V.v.z[2:end-1,end] 
                                     + Δt/ρ.v[2:end-1,end]
@@ -359,7 +359,7 @@ function MainSource()
         # Visualisation
         if mod(it, Nout)==0 && visu==true
 
-            resol=500 
+            resol=200 
             f = Figure(resolution = (l.x/l.y*resol*2, resol*2), fontsize=15)
 
             ax1 = Axis(f[1, 1], aspect=l.x/l.y, title = L" vx on v grid at $t$ = %$(t) [s]", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
@@ -401,7 +401,7 @@ function MainSource()
     valimy = max(abs(maximum(velocity_matrix.y)),abs(minimum(velocity_matrix.y)))
     valimz = max(abs(maximum(velocity_matrix.z)),abs(minimum(velocity_matrix.z)))
 
-     resol=500 
+     resol=200 
              f = Figure(resolution = (l.x/l.y*resol*3, resol), fontsize=15)
 
              ax1 = Axis(f[1, 1],  title = L" vx [m/s]", xlabel = L"$x$ [m]", ylabel = L"$t$ [s]")
