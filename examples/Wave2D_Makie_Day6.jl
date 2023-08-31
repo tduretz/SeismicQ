@@ -47,7 +47,7 @@ function MainSource()
     # Time domain
     c_eff = sqrt((K₀*(1+Fb_b)+4/3*G₀)/ρ₀) 
     Δt    = min(1e10, 0.3*Δ.x/c_eff, 0.3*Δ.y/c_eff ) # Courant criteria from wavespeed
-    Nt    = 1000
+    Nt    = 400
     Nout  = 100
     t     = -t₀
    
@@ -166,18 +166,26 @@ function MainSource()
         @.. ε̇.j.yz = 1//2*(L.j.zy)
       
         # Stress update
-        @.. τ.i.xx = θs(devi...)*(ε̇.i.xx) + χs(devi...)*τ.i.xx
-        @.. τ.j.xx = θs(devj...)*(ε̇.j.xx) + χs(devj...)*τ.j.xx
-        @.. τ.i.yy = θs(devi...)*(ε̇.i.yy) + χs(devi...)*τ.i.yy
-        @.. τ.j.yy = θs(devj...)*(ε̇.j.yy) + χs(devj...)*τ.j.yy
-        @.. τ.i.zz = θs(devi...)*(ε̇.i.zz) + χs(devi...)*τ.i.zz
-        @.. τ.j.zz = θs(devj...)*(ε̇.j.zz) + χs(devj...)*τ.j.zz
-        @.. τ.i.xy = θs(devi...)*(ε̇.i.xy) + χs(devi...)*τ.i.xy
-        @.. τ.j.xy = θs(devj...)*(ε̇.j.xy) + χs(devj...)*τ.j.xy
-        @.. τ.i.xz = θs(devi...)*(ε̇.i.xz) + χs(devi...)*τ.i.xz
-        @.. τ.j.xz = θs(devj...)*(ε̇.j.xz) + χs(devj...)*τ.j.xz
-        @.. τ.i.yz = θs(devi...)*(ε̇.i.yz) + χs(devi...)*τ.i.yz
-        @.. τ.j.yz = θs(devj...)*(ε̇.j.yz) + χs(devj...)*τ.j.yz
+        # @.. τ.i.xx = θs(devi...)*(ε̇.i.xx) + χs(devi...)*τ.i.xx
+        # @.. τ.j.xx = θs(devj...)*(ε̇.j.xx) + χs(devj...)*τ.j.xx
+        # @.. τ.i.yy = θs(devi...)*(ε̇.i.yy) + χs(devi...)*τ.i.yy
+        # @.. τ.j.yy = θs(devj...)*(ε̇.j.yy) + χs(devj...)*τ.j.yy
+        # @.. τ.i.zz = θs(devi...)*(ε̇.i.zz) + χs(devi...)*τ.i.zz
+        # @.. τ.j.zz = θs(devj...)*(ε̇.j.zz) + χs(devj...)*τ.j.zz
+        # @.. τ.i.xy = θs(devi...)*(ε̇.i.xy) + χs(devi...)*τ.i.xy
+        # @.. τ.j.xy = θs(devj...)*(ε̇.j.xy) + χs(devj...)*τ.j.xy
+        # @.. τ.i.xz = θs(devi...)*(ε̇.i.xz) + χs(devi...)*τ.i.xz
+        # @.. τ.j.xz = θs(devj...)*(ε̇.j.xz) + χs(devj...)*τ.j.xz
+        # @.. τ.i.yz = θs(devi...)*(ε̇.i.yz) + χs(devi...)*τ.i.yz
+        # @.. τ.j.yz = θs(devj...)*(ε̇.j.yz) + χs(devj...)*τ.j.yz
+
+
+        map(τ, ε̇) do τ, ε̇
+            @.. τ = θs(devi...)*(ε̇) + χs(devi...)*τ
+        end
+        # map(τ.i, ε̇.i) do τ, ε̇
+        #     @.. τ = θs(devj...)*(ε̇) + χs(devj...)*τ
+        # end
 
         # Pressure update 
         @.. P.i    = P.i + θb(voli...)*∇V.i + χb(voli...)*∇V0.i
