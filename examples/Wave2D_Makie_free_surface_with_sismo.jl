@@ -115,6 +115,7 @@ function MainSource()
     elseif DevRheo == :MaxwellVE
         devi = (G.i,ηₘ.i,Δt)
         devj = (G.j,ηₘ.j,Δt)
+        
     end
 
     # Select volumetric rheology
@@ -125,6 +126,13 @@ function MainSource()
         voli = (K.i,ηₖ.i,Δt)
         volj = (K.j,ηₖ.j,Δt)
     end
+
+    eta_s    = zeros(size(ηₘ.j))
+    theta_s    = zeros(size(ηₘ.j))
+    eta_b    = zeros(size(ηₖ.j))
+    theta_b    = zeros(size(ηₖ.j))
+    eta_b   .= ηb(devj...)
+    theta_b .= θb(devj...)
 
     # Time loop
     @views @time for it=1:Nt
@@ -191,12 +199,12 @@ function MainSource()
         @.. L.i.zx[:,2:end-1] = (V.c.z[2:end,2:end-1] - V.c.z[1:end-1,2:end-1])/Δ.x
         @.. L.j.zx[2:end-1,:] = (V.v.z[2:end,:] - V.v.z[1:end-1,:])/Δ.x
   
-      
-        L.j.xy[:,end] = (-L.j.yx[:,end] .* ηs(devj...) - θs(devj...).*τ0.j.xy[:,end]) ./ ηs(devj...)
-        L.j.zy[:,end] = -θs(devj...).*  τ0.j.yz[:,end] ./ ηs(devj...)
-        L.j.yy[:,end] = (- 3.0 * L.j.xx[:,end] .* ηb(volj...) + 2.0 * L.j.xx[:,end] .* ηs(devj...) 
-                         + 3.0 * P0.j[:,end]   .* θb(volj...) - 3.0 * θs(devj...)   .* τ0.j.yy[:,end]) ./
-                         (3.0 * ηb(volj...) + 4.0 * ηs(devj...))
+        
+        L.j.xy[:,end] .= (-L.j.yx[:,end] .* eta_s[:,end] .- theta_s[:,end].*τ0.j.xy[:,end]) ./ eta_s[:,end]
+        L.j.zy[:,end] .= -theta_s[:,end].*  τ0.j.yz[:,end] ./ eta_s[:,end]
+        L.j.yy[:,end] .= (- 3.0 * L.j.xx[:,end] .* eta_b[:,end] + 2.0 * L.j.xx[:,end] .* eta_s[:,end] 
+                         + 3.0 * P0.j[:,end]   .* theta_b[:,end] - 3.0 * theta_s[:,end]   .* τ0.j.yy[:,end]) ./
+                         (3.0 * eta_b[:,end] + 4.0 * eta_s[:,end])
         
         
         # Divergence
@@ -242,14 +250,9 @@ function MainSource()
         @.. τ.i.yz = ηs(devi...)*(ε̇.i.yz) + θs(devi...)*τ0.i.yz
         @.. τ.j.yz = ηs(devj...)*(ε̇.j.yz) + θs(devj...)*τ0.j.yz
 
-<<<<<<< HEAD
-       
-
-=======
         τ.j.xy[:,1:2] .= 0.
         τ.j.yz[:,1:2] .= 0.
         τ.j.yy[:,1:2] .= 0.
->>>>>>> 5029644d68fc5060cd663a5fa4d5f7c1b99cc9ec
         # Pressure update 
 
         @.. P.i    = θb(voli...)*P0.i - ηb(voli...)*∇V.i 
@@ -302,30 +305,30 @@ function MainSource()
                                     - facS.c.z*f_ext.c[2:end-1,2:end-1]))  
                                     
         # free surface BC at top 
-        @.. V.v.y[2:end-1,end] = V.v.y[2:end-1,end-1]
-        @.. V.v.x[2:end-1,end] = V.v.x[2:end-1,end-1]
-        @.. V.v.z[2:end-1,end] = V.v.z[2:end-1,end-1]
+        # @.. V.v.y[2:end-1,end] = V.v.y[2:end-1,end-1]
+        # @.. V.v.x[2:end-1,end] = V.v.x[2:end-1,end-1]
+        # @.. V.v.z[2:end-1,end] = V.v.z[2:end-1,end-1]
 
        
-        @.. V.v.x[2:end-1,2:end-1] = (V.v.x[2:end-1,2:end-1] 
-        + Δt/ρ.v[2:end-1,2:end-1]
-        *((τ.j.xx[3:end-1,2:end-1]-τ.j.xx[2:end-2,2:end-1])/Δ.x
-        + (τ.i.xy[2:end-1,3:end-1]-τ.i.xy[2:end-1,2:end-2])/Δ.y 
-        - (P.j[3:end-1,2:end-1]-P.j[2:end-2,2:end-1])/Δ.x 
-        - facS.v.x*f_ext.v[2:end-1,2:end-1]))
+        @.. V.v.x[2:end-1,end] = (V.v.x[2:end-1,end] 
+        + Δt/ρ.v[2:end-1,end]
+        *((τ.j.xx[3:end-1,end]-τ.j.xx[2:end-2,end])/Δ.x
+        + (τ.i.xy[2:end-1,end]-τ.i.xy[2:end-1,end-1])/Δ.y 
+        - (P.j[3:end-1,end]-P.j[2:end-2,end])/Δ.x 
+        - facS.v.x*f_ext.v[2:end-1,end]))
 
         @.. V.v.y[2:end-1,end] = (V.v.y[2:end-1,end] 
         + Δt/ρ.v[2:end-1,end]
-        *((τ.j.xy[3:end-1,2:end-1]-τ.j.xy[2:end-2,2:end-1])/Δ.x
-        + (τ.i.yy[2:end-1,3:end-1]-τ.i.yy[2:end-1,2:end-2])/Δ.y 
-        - (P.i[2:end-1,3:end-1]-P.i[2:end-1,2:end-2])/Δ.y 
-        - facS.v.y*f_ext.v[2:end-1,2:end-1]))
+        *((τ.j.xy[3:end-1,end]-τ.j.xy[2:end-2,end])/Δ.x
+        + (τ.i.yy[2:end-1,end]-τ.i.yy[2:end-2,end-1])/Δ.y 
+        - (P.i[2:end-1,end]   -P.i[2:end-1,end-1])/Δ.y 
+        - facS.v.y*f_ext.v[2:end-1,end]))
 
-        @.. V.v.z[2:end-1,2:end-1] = (V.v.z[2:end-1,2:end-1] 
-                                    + Δt/ρ.v[2:end-1,2:end-1]
-                                    *((τ.j.xz[3:end-1,2:end-1]-τ.j.xz[2:end-2,2:end-1])/Δ.x
-                                    + (τ.i.yz[2:end-1,3:end-1]-τ.i.yz[2:end-1,2:end-2])/Δ.y 
-                                    - facS.v.z* f_ext.v[2:end-1,2:end-1]))
+        @.. V.v.z[2:end-1,end] = (V.v.z[2:end-1,end] 
+                                    + Δt/ρ.v[2:end-1,end]
+                                    *((τ.j.xz[3:end-1,end]-τ.j.xz[2:end-2,end])/Δ.x
+                                    + (τ.i.yz[2:end-1,end]-τ.i.yz[2:end-1,end-1])/Δ.y 
+                                    - facS.v.z* f_ext.v[2:end-1,end]))
 
 
     
