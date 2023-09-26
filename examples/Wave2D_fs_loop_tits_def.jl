@@ -1,4 +1,4 @@
-using SeismicQ, FastBroadcast, GLMakie, Printf, Colors, ColorSchemes, MathTeXEngine
+using SeismicQ, FastBroadcast, GLMakie, Printf, Colors, ColorSchemes, MathTeXEngine, Makie.GeometryBasics
 Makie.update_theme!(fonts = (regular = texfont(), bold = texfont(:bold), italic = texfont(:italic)))
 
 function MainSource()
@@ -17,12 +17,20 @@ function MainSource()
     l  = (x = 100, y = 50)
 
     # Discretization
-    Nc  = (x = 400, y = 100) 
+    Nc  = (x = 200, y = 100) 
     Δ   = (x = l.x/Nc.x, y = l.y/Nc.y, z=1.0)
-    X   = (x= ( v = LinRange(0,l.x,Nc.x+1)            ,c= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2),
-                i = LinRange(0,l.x,Nc.x+1)            ,j= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2)),
-           y= ( v = LinRange(0,l.y,Nc.y+1)            ,c= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2),
-                i = LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2),j= LinRange(0,l.y,Nc.y+1)))         
+    X   = (x= ( v = LinRange(0,l.x,Nc.x+1)            , c= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2),
+                i = LinRange(0,l.x,Nc.x+1)            , j= LinRange(0-Δ.x/2,l.x+Δ.x/2,Nc.x+2)),
+           y= ( v = LinRange(0,l.y,Nc.y+1)            , c= LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2),
+                i = LinRange(0-Δ.y/2,l.y+Δ.y/2,Nc.y+2), j= LinRange(0,l.y,Nc.y+1))) 
+    
+    xxv, yyv    = LinRange(0-Δ.x/2, l.x+Δ.x/2, 2Nc.x+3), LinRange(0-Δ.y/2, l.y+Δ.y/2, 2Nc.y+3)
+    (xv4, yv4) = ([x for x=xxv,y=yyv], [y for x=xxv,y=yyv])
+    X1 = (v=(x=xv4[2:2:end-1,2:2:end-1], y=yv4[2:2:end-1,2:2:end-1]), c=(x=xv4[1:2:end-0,1:2:end-0], y=yv4[1:2:end-0,1:2:end-0]), x=(x=xv4[2:2:end-1,3:2:end-2], y=yv4[2:2:end-1,3:2:end-2]), y=(x=xv4[3:2:end-2,2:2:end-1], y=yv4[3:2:end-2,2:2:end-1]))
+    cell_vertx = [  X1.v.x[1:end-1,1:end-1][:]  X1.v.x[2:end-0,1:end-1][:]  X1.v.x[2:end-0,2:end-0][:]  X1.v.x[1:end-1,2:end-0][:] ] 
+    cell_verty = [  X1.v.y[1:end-1,1:end-1][:]  X1.v.y[2:end-0,1:end-1][:]  X1.v.y[2:end-0,2:end-0][:]  X1.v.y[1:end-1,2:end-0][:] ] 
+    node_vertx = [  X1.c.x[1:end-1,1:end-1][:]  X1.c.x[2:end-0,1:end-1][:]  X1.c.x[2:end-0,2:end-0][:]  X1.c.x[1:end-1,2:end-0][:] ] 
+    node_verty = [  X1.c.y[1:end-1,1:end-1][:]  X1.c.y[2:end-0,1:end-1][:]  X1.c.y[2:end-0,2:end-0][:]  X1.c.y[1:end-1,2:end-0][:] ]         
     # Source parameters
     𝑓₀   = 50  # Central frequency of the source [Hz]
     t₀   = 1.2/𝑓₀
@@ -32,9 +40,6 @@ function MainSource()
     src  = (i=Int((Nc.x/2)+1),j=Int((Nc.y/4)+1))
     facS = (v=(x=0.0,y=1.0,z=1.0),c=(x=0.0,y=1.0,z=1.0))
     
-  
-
-
     # Mechanical parameters 
     ρ₀      = 1500.0
     K₀      = 1.e9
@@ -52,10 +57,9 @@ function MainSource()
     # Time domain
     c_eff = sqrt((K₀*(1+Fb_b)+4/3*G₀)/ρ₀) 
     Δt    = min(1e10, 0.1*Δ.x/c_eff, 0.1*Δ.y/c_eff ) # Courant criteria from wavespeed
-    Nt    = 10001
+    Nt    = 4001
     Nout  = 500
     t     = -t₀
-
 
     # Parameters for Sismo.
     Noutsismo       = 10
@@ -71,7 +75,7 @@ function MainSource()
     szc   = (Nc.x+2, Nc.y+2)
     szi   = (Nc.x+1, Nc.y+2)
     szj   = (Nc.x+2, Nc.y+1)
-    topbc=(i=szi[2]-1,j=szj[2])
+    topbc = (i=szi[2]-1,j=szj[2])
     # Storage on i and j meshes
     K     = (i= ones(szi)*K₀,  j= ones(szj)*K₀ ) 
     G     = (i= ones(szi)*G₀,  j= ones(szj)*G₀ ) 
@@ -80,10 +84,6 @@ function MainSource()
     ∇V    = (i=zeros(szi),     j=zeros(szj))
     P     = (i=zeros(szi),     j=zeros(szj))
     P0   = (i=zeros(szi),     j=zeros(szj))
-    # L     = (i=(xx=zeros(szi), xy=zeros(szi), yx=zeros(szi), yy=zeros(szi),zx=zeros(szi),zy=zeros(szi)),
-    #          j=(xx=zeros(szj), xy=zeros(szj), yx=zeros(szj), yy=zeros(szj),zx=zeros(szj),zy=zeros(szj)))
-    # ε̇     = (i=(xx=zeros(szi), yy=zeros(szi), zz=zeros(szi), xy=zeros(szi),xz=zeros(szi),yz=zeros(szi)),
-    #          j=(xx=zeros(szj), yy=zeros(szj), zz=zeros(szj), xy=zeros(szj),xz=zeros(szj),yz=zeros(szj))) 
     ε̇      = (xx=(i=zeros(szi),j=zeros(szj)) , yy=(i=zeros(szi),j=zeros(szj)),
               zz=(i=zeros(szi),j=zeros(szj)) , xy=(i=zeros(szi),j=zeros(szj)),
               xz=(i=zeros(szi),j=zeros(szj)) , yz=(i=zeros(szi),j=zeros(szj)))
@@ -132,7 +132,6 @@ function MainSource()
         vol = (i=(K.i,ηₖ.i,Δt),j=(K.j,ηₖ.j,Δt))
     end
 
-
     # Time loop
     @views @time for it=1:Nt
 
@@ -160,39 +159,36 @@ function MainSource()
             @.. τ0[comp][grid]= τ0[comp][grid] - χs(dev[grid]...)*ε̇[comp][grid]
         end
         
-
         # Velocity gradient components
-        
         @.. L.xx.i[:,2:end-1] = (V.x.c[2:end,2:end-1] - V.x.c[1:end-1,2:end-1])/Δ.x
         @.. L.yx.i[:,2:end-1] = (V.y.c[2:end,2:end-1] - V.y.c[1:end-1,2:end-1])/Δ.x
         @.. L.zx.i[:,2:end-1] = (V.z.c[2:end,2:end-1] - V.z.c[1:end-1,2:end-1])/Δ.x
-
         @.. L.xx.j[2:end-1,:] = (V.x.v[2:end,:] - V.x.v[1:end-1,:])/Δ.x
         @.. L.yx.j[2:end-1,:] = (V.y.v[2:end,:] - V.y.v[1:end-1,:])/Δ.x
         @.. L.zx.j[2:end-1,:] = (V.z.v[2:end,:] - V.z.v[1:end-1,:])/Δ.x
-  
         @.. L.yy.i[:,2:end-1] = (V.y.v[:,2:end] - V.y.v[:,1:end-1])/Δ.y
         @.. L.xy.i[:,2:end-1] = (V.x.v[:,2:end] - V.x.v[:,1:end-1])/Δ.y
         @.. L.zy.i[:,2:end-1] = (V.z.v[:,2:end] - V.z.v[:,1:end-1])/Δ.y
-
         @.. L.yy.j[2:end-1,:] = (V.y.c[2:end-1,2:end] - V.y.c[2:end-1,1:end-1])/Δ.y
         @.. L.xy.j[2:end-1,:] = (V.x.c[2:end-1,2:end] - V.x.c[2:end-1,1:end-1])/Δ.y
         @.. L.zy.j[2:end-1,:] = (V.z.c[2:end-1,2:end] - V.z.c[2:end-1,1:end-1])/Δ.y
-        
 
-        
-        for grid=1:2
-        L.xy[grid][:,topbc[grid]] .= (-L.yx[grid][:,topbc[grid]] .* ηs(dev[grid]...)[:,topbc[grid]] .- 
-                                       θs(dev[grid]...)[:,topbc[grid]].*τ0.xy[grid][:,topbc[grid]]) ./ 
-                                       ηs(dev[grid]...)[:,topbc[grid]]
-        L.zy[grid][:,topbc[grid]] .= -θs(dev[grid]...)[:,topbc[grid]].*  τ0.yz[grid][:,topbc[grid]] ./
-                                       ηs(dev[grid]...)[:,topbc[grid]]
-        L.yy[grid][:,topbc[grid]] .= (- 3.0 * L.xx[grid][:,topbc[grid]] .* ηb(vol[grid]...)[:,topbc[grid]] + 
-                                        2.0 * L.xx[grid][:,topbc[grid]] .* ηs(dev[grid]...)[:,topbc[grid]] +
-                                        3.0 * P0[grid][:,topbc[grid]]   .* θb(vol[grid]...)[:,topbc[grid]] - 
-                                        3.0 * θs(dev[grid]...)[:,topbc[grid]]  .* τ0.yy[grid][:,topbc[grid]]) ./
-                                       (3.0 * ηb(vol[grid]...)[:,topbc[grid]]  + 4.0 * ηs(dev[grid]...)[:,topbc[grid]])
-        end
+        @. L.xy.j[:,end] = (-L.yx.j[:,end] .* ηs(dev[2]...)[:,end] - θs(dev[2]...)[:,end] .* τ0.xy.j[:,end]) ./ ηs(dev[2]...)[:,end]
+        @. L.yy.j[:,end] = (-3.0 * L.xx.j[:,end] .* ηb(vol[2]...)[:,end] + 2.0 * L.xx.j[:,end] .* ηs(dev[2]...)[:,end] + 3.0 * P0.j[:,end]  .* θb(vol[2]...)[:,end]  - 3.0 * θs(dev[2]...)[:,end] .* τ0.yy.j[:,end]) ./ (3.0 * ηb(vol[2]...)[:,end] + 4.0 * ηs(dev[2]...)[:,end])
+        @. L.zy.j[:,end] = -θs(dev[2]...)[:,end] .* τ0.yz.j[:,end] ./ ηs(dev[2]...)[:,end]
+         
+        # for grid=1:2
+        #     L.xy[grid][:,topbc[grid]] .= (-L.yx[grid][:,topbc[grid]] .* ηs(dev[grid]...)[:,topbc[grid]] .- 
+        #                                 θs(dev[grid]...)[:,topbc[grid]].*τ0.xy[grid][:,topbc[grid]]) ./ 
+        #                                 ηs(dev[grid]...)[:,topbc[grid]]
+        #     L.zy[grid][:,topbc[grid]] .= -θs(dev[grid]...)[:,topbc[grid]].*  τ0.yz[grid][:,topbc[grid]] ./
+        #                                 ηs(dev[grid]...)[:,topbc[grid]]
+        #     L.yy[grid][:,topbc[grid]] .= (- 3.0 * L.xx[grid][:,topbc[grid]] .* ηb(vol[grid]...)[:,topbc[grid]] + 
+        #                                     2.0 * L.xx[grid][:,topbc[grid]] .* ηs(dev[grid]...)[:,topbc[grid]] +
+        #                                     3.0 * P0[grid][:,topbc[grid]]   .* θb(vol[grid]...)[:,topbc[grid]] - 
+        #                                     3.0 * θs(dev[grid]...)[:,topbc[grid]]  .* τ0.yy[grid][:,topbc[grid]]) ./
+        #                                 (3.0 * ηb(vol[grid]...)[:,topbc[grid]]  + 4.0 * ηs(dev[grid]...)[:,topbc[grid]])
+        # end
     
         # Divergence
         for grid=1:2
@@ -211,7 +207,6 @@ function MainSource()
         end
 
         # Stress update
-
         for grid=1:2, comp=1:6
              @.. τ[comp][grid] = ηs(dev[grid]...)*(ε̇[comp][grid]) + θs(dev[grid]...)*τ0[comp][grid]
         end        
@@ -219,12 +214,13 @@ function MainSource()
         for grid=1:2
             @.. P[grid]  = θb(vol[grid]...)*P0[grid] - ηb(vol[grid]...)*∇V[grid]
         end 
-        #@.. P.j    = θb(vol.j...)*P0.j - ηb(vol.j...)*∇V.j 
 
-        # these stresses are on the free surface) 
-        # τ.j.xy[:,end] .= 0.
-        # τ.j.yz[:,end] .= 0.
-        # τ.j.yy[:,end] .= P.j[:,end]
+        # these stresses are on the free surface
+        τ.xy.j[:,end] .= - τ.xy.j[:,end-1]
+        τ.yz.j[:,end] .= - τ.yz.j[:,end-1]
+        τ.yy.j[:,end] .= τ.yy.j[:,end-1]# P.j[:,end]
+        τ.xx.j[:,end] .= τ.xx.j[:,end-1]
+        P.j[:,end]    .= P.j[:,end-1] 
 
         # Linear momentum balance
         @.. V.x.v[2:end-1,2:end-1] = (V.x.v[2:end-1,2:end-1] 
@@ -312,11 +308,16 @@ function MainSource()
             f = Figure(resolution = (l.x/l.y*resol*2, resol*2), fontsize=15)
             for grid=1:2, comp=1:length(Δ) 
                 ax = Axis(f[grid, comp], aspect=l.x/l.y, title = L" v%$(comp) on grid %$(grid) ", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
-                hm = GLMakie.heatmap!(ax, X.x.v, X.y.v, V.x.v, colormap = wave_colors,colorrange=(-3.e-5,3.e-5))
+                hm = GLMakie.heatmap!(ax, X.x.v, X.y.v, V[comp][grid], colormap = wave_colors,colorrange=(-3.e-5,3.e-5))
+                GLMakie.Colorbar(f[1, 4], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
             end
 
+            # PATCH PLOT FOR (1,1)
+            ax = Axis(f[1, 1], aspect=l.x/l.y, title = L" v1 on grid 1 ", xlabel = L"$x$ [m]", ylabel = L"$y$ [m]")
+            p = [Polygon( Point2f0[ (cell_vertx[i,j], cell_verty[i,j]) for j=1:4] ) for i in 1:length(V[1][2][2:end-1,2:end-1])]
+            poly!(ax, p, color = V[1][2][2:end-1,2:end-1][:], colormap = wave_colors, strokewidth = 0, strokecolor = :white, markerstrokewidth = 0, markerstrokecolor = (0, 0, 0, 0), aspect=:image, colorrange=(-3.e-5,3.e-5))
+
             # colsize!(f.layout, 1, Aspect(1, l.x/l.y))
-            GLMakie.Colorbar(f[1, 4], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
             # GLMakie.colgap!(f.layout, 20)
             display(f)
             sleep(0.1)
@@ -332,26 +333,26 @@ function MainSource()
         end
     end
 
-    valimx = max(abs(maximum(velocity_matrix.x)),abs(minimum(velocity_matrix.x)))
-    valimy = max(abs(maximum(velocity_matrix.y)),abs(minimum(velocity_matrix.y)))
-    valimz = max(abs(maximum(velocity_matrix.z)),abs(minimum(velocity_matrix.z)))
+    # valimx = max(abs(maximum(velocity_matrix.x)),abs(minimum(velocity_matrix.x)))
+    # valimy = max(abs(maximum(velocity_matrix.y)),abs(minimum(velocity_matrix.y)))
+    # valimz = max(abs(maximum(velocity_matrix.z)),abs(minimum(velocity_matrix.z)))
 
-     resol=500 
-             f = Figure(resolution = (resol,resol), fontsize=15)
+    #  resol=500 
+    #          f = Figure(resolution = (resol,resol), fontsize=15)
 
-             ax1 = Axis(f[1, 1],  title = L" vx [m/s]", xlabel = L"$x$ [m]", ylabel = L"$t$ [s]")
-             hm = GLMakie.heatmap!(ax1, Xs[:,1], -arrival_time[1,:], velocity_matrix.x, colormap = wave_colors,colorrange=(-valimx,valimx))
-             GLMakie.Colorbar(f[1, 2], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
+    #          ax1 = Axis(f[1, 1],  title = L" vx [m/s]", xlabel = L"$x$ [m]", ylabel = L"$t$ [s]")
+    #          hm = GLMakie.heatmap!(ax1, Xs[:,1], -arrival_time[1,:], velocity_matrix.x, colormap = wave_colors,colorrange=(-valimx,valimx))
+    #          GLMakie.Colorbar(f[1, 2], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
            
-            ax2 = Axis(f[2, 1],  title = L" vy [m/s]", xlabel = L"$x$ [m]", ylabel = L"$t$ [s]")
-             hm = GLMakie.heatmap!(ax2,Xs[:,1], -arrival_time[1,:],velocity_matrix.y, colormap = wave_colors,colorrange=(-valimy,valimy))
-             GLMakie.Colorbar(f[2, 2], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
+    #         ax2 = Axis(f[2, 1],  title = L" vy [m/s]", xlabel = L"$x$ [m]", ylabel = L"$t$ [s]")
+    #          hm = GLMakie.heatmap!(ax2,Xs[:,1], -arrival_time[1,:],velocity_matrix.y, colormap = wave_colors,colorrange=(-valimy,valimy))
+    #          GLMakie.Colorbar(f[2, 2], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
            
-             ax3 = Axis(f[3, 1], title = L" vz [m/s]", xlabel = L"$x$ [m]", ylabel = L"$t$ [m]")
-            hm = GLMakie.heatmap!(ax3, Xs[:,1], -arrival_time[1,:],  velocity_matrix.z, colormap = wave_colors,colorrange=(-valimz,valimz))
-             GLMakie.Colorbar(f[3, 2], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
-        #  # GLMakie.colgap!(f.layout, 20)
-         display(f)
+    #          ax3 = Axis(f[3, 1], title = L" vz [m/s]", xlabel = L"$x$ [m]", ylabel = L"$t$ [m]")
+    #         hm = GLMakie.heatmap!(ax3, Xs[:,1], -arrival_time[1,:],  velocity_matrix.z, colormap = wave_colors,colorrange=(-valimz,valimz))
+    #          GLMakie.Colorbar(f[3, 2], hm, label = "V [m/s]", width = 20, labelsize = 25, ticklabelsize = 14 )
+    #     #  # GLMakie.colgap!(f.layout, 20)
+    #      display(f)
 
 end
 
