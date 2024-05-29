@@ -1,9 +1,9 @@
-using SeismicQ, FastBroadcast, GLMakie, Printf, Colors, ColorSchemes, MathTeXEngine, UnPack, Makie.GeometryBasics
+using SeismicQ, FastBroadcast, GLMakie, Printf, Colors, ColorSchemes, MathTeXEngine, UnPack, Makie.GeometryBasics, ForwardDiff
 Makie.update_theme!(fonts = (regular = texfont(), bold = texfont(:bold), italic = texfont(:italic)))
+Makie.inline!(true)
 
 @views h(x,A,σ,b,x0)    = A*exp(-(x-x0)^2/σ^2) + b
 @views dhdx(x,A,σ,b,x0) = -2*x/σ^2*A*exp(-(x-x0).^2/σ^2)
-
 
 function Mesh_y( X, A, x0, σ, b, m, ymin0, ymax0, σy )
     y0    = ymax0
@@ -11,17 +11,17 @@ function Mesh_y( X, A, x0, σ, b, m, ymin0, ymax0, σy )
     ymax1 = (sinh.( σy.*(ymax0.-y0) ))
     sy    = (ymax0-ymin0)/(ymax1-ymin1)
     y     = (sinh.( σy.*(X[2].-y0) )) .* sy  .+ y0
-    # y = X[2]
+    # y = X[2] 
     z0    = -(A*exp(-(X[1]-x0)^2/σ^2) + b) # topography height
     y     = (y/ymin0)*((z0+m))-z0        # shift grid vertically
     return y
 end
 function Mesh_x( X, A, x0, σ, b, m, xmin0, xmax0, σx )
-    xmin1 = (sinh.( σx.*(xmin0.-x0) ))
-    xmax1 = (sinh.( σx.*(xmax0.-x0) ))
-    sx    = (xmax0-xmin0)/(xmax1-xmin1)
-    x     = (sinh.( σx.*(X[1].-x0) )) .* sx  .+ x0        
-    # x   = X[1]
+    # xmin1 = (sinh.( σx.*(xmin0.-x0) ))
+    # xmax1 = (sinh.( σx.*(xmax0.-x0) ))
+    # sx    = (xmax0-xmin0)/(xmax1-xmin1)
+    # x     = (sinh.( σx.*(X[1].-x0) )) .* sx  .+ x0        
+    x   = X[1]
     return x
 end
 
@@ -32,11 +32,11 @@ function PatchPlotMakie(vertx, verty, field; cmap = :turbo, write_fig=false )
     ymin = minimum(verty)
     ymax = maximum(verty)
     ar = (xmax - xmin) / (ymax - ymin)
-    GLMakie.Axis(f[1,1]) #, aspect = ar
+    GLMakie.Axis(f[1,1], aspect = ar) #, aspect = ar
     min_v = minimum( field ); max_v = maximum( field )
     limits = min_v ≈ max_v ? (min_v, min_v + 1) : (min_v, max_v)
     p = [Polygon( Point2f0[ (vertx[i,j], verty[i,j]) for j=1:4] ) for i in 1:length(field)]
-    GLMakie.poly!(p, color = field, colormap = cmap, strokewidth = 1, strokecolor = :black, markerstrokewidth = 0, markerstrokecolor = (0, 0, 0, 0), aspect=:image, colorrange=limits)
+    GLMakie.poly!(p, color = field, colormap = cmap, strokewidth = 1, strokecolor = :white, markerstrokewidth = 0, markerstrokecolor = (0, 0, 0, 0), aspect=:image, colorrange=limits)
     GLMakie.Colorbar(f[1, 2], colormap = cmap, limits=limits, flipaxis = true, size = 25 )
     display(f)
     # if write_fig==true 
@@ -65,98 +65,23 @@ function InverseJacobian!(∂ξ,∂η,∂x,∂y)
     return nothing
 end
 
-function ComputeForwardTransformation_ini!( ∂x, ∂y, x_ini, y_ini, X_msh, Amp, x0, σ, m, x, y, σx, σy, ϵ)
-    
+function ComputeForwardTransformation_ini!( ∂x, ∂y, x_ini, y_ini, X_msh, Amp, x0, σ, m, x, y, σx, σy)
     xmin, xmax = x.min, x.max
     ymin, ymax = y.min, y.max
-
-    @time for i in eachindex(y_ini)          
-    
-        # compute dxdksi
-        X_msh[1] = x_ini[i]-ϵ
-        X_msh[2] = y_ini[i] 
-        xm       = Mesh_x( X_msh,  Amp, x0, σ, xmax, m, xmin, xmax, σx )
-        # --------
-        X_msh[1] = x_ini[i]+ϵ
+    # ForwardDiff
+    g = zeros(2) 
+    @time for i in eachindex(y_ini)
+        X_msh[1] = x_ini[i]
         X_msh[2] = y_ini[i]
-        xp       = Mesh_x( X_msh,  Amp, x0, σ, xmax, m, xmin, xmax, σx )
-        # --------
-        ∂x.∂ξ[i] = (xp - xm) / (2ϵ)
-    
-        # compute dydeta
-        X_msh[1] = x_ini[i]
-        X_msh[2] = y_ini[i]-ϵ
-        xm     = Mesh_x( X_msh,  Amp, x0, σ, ymax, m, ymin, ymax, σy )
-        # --------
-        X_msh[1] = x_ini[i]
-        X_msh[2] = y_ini[i]+ϵ
-        xp       = Mesh_x( X_msh,  Amp, x0, σ, ymax, m, ymin, ymax, σy )
-        # --------
-        ∂x.∂η[i] = (xp - xm) / (2ϵ)
-    
-        # compute dydksi
-        X_msh[1] = x_ini[i]-ϵ
-        X_msh[2] = y_ini[i] 
-        ym       = Mesh_y( X_msh,  Amp, x0, σ, ymax, m, ymin, ymax, σy )
-        # --------
-        X_msh[1] = x_ini[i]+ϵ
-        X_msh[2] = y_ini[i]
-        yp       = Mesh_y( X_msh,  Amp, x0, σ, ymax, m, ymin, ymax, σy )
-        # --------
-        ∂y.∂ξ[i] = (yp - ym) / (2ϵ)
-    
-        # compute dydeta
-        X_msh[1] = x_ini[i]
-        X_msh[2] = y_ini[i]-ϵ
-        ym     = Mesh_y( X_msh,  Amp, x0, σ, ymax, m, ymin, ymax, σy )
-        # --------
-        X_msh[1] = x_ini[i]
-        X_msh[2] = y_ini[i]+ϵ
-        yp     = Mesh_y( X_msh,  Amp, x0, σ, ymax, m, ymin, ymax, σy )
-        # --------
-        ∂y.∂η[i] = (yp - ym) / (2ϵ)
+        Meshx_x_closed = (X_msh) -> Mesh_x( X_msh, Amp, x0, σ, xmax, m, xmin, xmax, σx )
+        ForwardDiff.gradient!( g, Meshx_x_closed, X_msh )
+        ∂x.∂ξ[i] = g[1]
+        ∂x.∂η[i] = g[2]
+        Mesh_y_closed = (X_msh) -> Mesh_y( X_msh,  Amp, x0, σ, ymax, m, ymin, ymax, σy )
+        ForwardDiff.gradient!( g, Mesh_y_closed, X_msh )
+        ∂y.∂ξ[i] = g[1]
+        ∂y.∂η[i] = g[2]
     end
-    # #################
-    # # ForwardDiff
-    # g = zeros(2)
-    # Y = zeros(1)
-    # dydksi_FD = zeros(size(dydeta))
-    # dydeta_FD = zeros(size(dydeta))
-    # dxdksi_FD = zeros(size(dydeta))
-    # dxdeta_FD = zeros(size(dydeta))
-    # @time for i in eachindex(dydeta_FD)
-    #     X_msh[1] = x_ini[i]
-    #     X_msh[2] = y_ini[i]
-    #     Mesh_y_closed = (X_msh) -> Mesh_y( X_msh, Amp, x0, σ, b, m, ymin )
-    #     ForwardDiff.gradient!( g, Mesh_y_closed, X_msh )
-    #     dydksi_FD[i] = g[1]
-    #     dydeta_FD[i] = g[2]
-    #     Meshx_surf_closed = (X_msh) -> Mesh_x( X_msh, Amp, x0, σ, b, m, ymin )
-    #     ForwardDiff.gradient!( g, Meshx_surf_closed, X_msh )
-    #     dxdksi_FD[i] = g[1]
-    #     dxdeta_FD[i] = g[2]
-    # end
-    
-    # dxdksi_num = diff(xv4,dims=1)/(Δx/2)
-    # dxdeta_num = diff(xv4,dims=2)/(Δy/2)
-    # dydksi_num = diff(yv4,dims=1)/(Δx/2)
-    # dydeta_num = diff(yv4,dims=2)/(Δy/2)
-    
-    # @printf("min(dxdksi    ) = %1.6f --- max(dxdksi    ) = %1.6f\n", minimum(dxdksi   ), maximum(dxdksi   ))
-    # @printf("min(dxdksi_FD ) = %1.6f --- max(dxdksi_FD ) = %1.6f\n", minimum(dxdksi_FD), maximum(dxdksi_FD))
-    # @printf("min(dxdksi_num) = %1.6f --- max(dxdksi_num) = %1.6f\n", minimum(dxdksi_num), maximum(dxdksi_num))
-    
-    # @printf("min(dxdeta    ) = %1.6f --- max(dxdeta   ) = %1.6f\n", minimum(dxdeta   ), maximum(dxdeta   ))
-    # @printf("min(dxdeta_FD ) = %1.6f --- max(dxdeta_FD) = %1.6f\n", minimum(dxdeta_FD), maximum(dxdeta_FD))
-    # @printf("min(dxdeta_num) = %1.6f --- max(dxdeta_num) = %1.6f\n", minimum(dxdeta_num), maximum(dxdeta_num))
-    
-    # @printf("min(dydksi    ) = %1.6f --- max(dydksi    ) = %1.6f\n", minimum(dydksi   ), maximum(dydksi   ))
-    # @printf("min(dydksi_FD ) = %1.6f --- max(dydksi_FD ) = %1.6f\n", minimum(dydksi_FD), maximum(dydksi_FD))
-    # @printf("min(dydksi_num) = %1.6f --- max(dydksi_num) = %1.6f\n", minimum(dydksi_num), maximum(dydksi_num))
-    
-    # @printf("min(dydeta    ) = %1.6f --- max(dydeta    ) = %1.6f\n", minimum(dydeta   ), maximum(dydeta   ))
-    # @printf("min(dydeta_FD ) = %1.6f --- max(dydeta_FD ) = %1.6f\n", minimum(dydeta_FD), maximum(dydeta_FD))
-    # @printf("min(dydeta_num) = %1.6f --- max(dydeta_num) = %1.6f\n", minimum(dydeta_num), maximum(dydeta_num))
     return nothing
 end
 
@@ -174,12 +99,12 @@ function MainSource()
     wave_colors     = cgrad(juliadivcmap, length(juliadivcmap), categorical=false, rev=false)
     
     # Spatial extent
-    l  = (x = 25, y = 25)
+    l  = (x = 25, y = 10)
     x  = (min=-l.x/2, max=l.x/2)
     y  = (min=-l.y/1, max=0.)
 
     # Discretization
-    Nc  = (x = 50, y = 50) 
+    Nc  = (x = 100, y = 100) 
     Δ   = (ξ = l.x/Nc.x, η = l.y/Nc.y, ζ = 1.0)
     X   = (v = (x = LinRange(x.min,       x.max,       Nc.x+1) , y = LinRange(y.min,       y.max,Nc.y+1)),
            c = (x = LinRange(x.min-Δ.ξ/2, x.max+Δ.ξ/2, Nc.x+2) , y = LinRange(y.min-Δ.η/2, y.max+Δ.η/2,Nc.y+2)),
@@ -190,8 +115,8 @@ function MainSource()
     𝑓₀   = 100   # Central frequency of the source [Hz]
     t₀   = 1.2/𝑓₀
     σ₀   = l.x/100
-    x₀   = (x.min + x.max)/2
-    y₀   = (y.min + y.max)/2
+    x₀   = -10.
+    y₀   = -3.
     src  = (i=Int((Nc.x/2)+1),j=Int((Nc.y/2)+1))
     facS = (v=(x=0.0,y=1.0,z=1.0),c=(x=0.0,y=1.0,z=1.0))
     
@@ -212,8 +137,8 @@ function MainSource()
     # Time domain
     c_eff = sqrt((K₀*(1+Fb_b)+4/3*G₀)/ρ₀) 
     Δt    = min(1e10, 0.1*Δ.ξ/c_eff, 0.1*Δ.η/c_eff ) # Courant criteria from wavespeed
-    Nt    = 1000
-    Nout  = 1000
+    Nt    = 3000
+    Nout  = 500
     t     = -t₀
    
     # Storage on centers # +2 for ghost nodes for BCs
@@ -247,15 +172,11 @@ function MainSource()
     # BC
     Lbc        = 1.
     # BC on v and c mesh
-    bc_filt_V   = (v=Cerjean2D(X.v,Lbc,l,Δ),c=Cerjean2D(X.c,Lbc,l,Δ))
-    bc_filt_tau = (i=Cerjean2D(X.i,Lbc,l,Δ),j=Cerjean2D(X.j,Lbc,l,Δ))
+    bc_filt_V   = (v=Cerjean2D(X.v, Lbc, x, y, Δ),c=Cerjean2D(X.c, Lbc, x, y, Δ))
+    bc_filt_tau = (i=Cerjean2D(X.i, Lbc, x, y, Δ),j=Cerjean2D(X.j, Lbc, x, y, Δ))
 
     # Compute Ricker function with 2D spatial support
     f_ext  = (v=zeros(szv)  , c=zeros(szc))
-    xc2d   = X.c.x * ones(size( X.c.y))'
-    yc2d   = ones(size( X.c.x)) * X.c.y'
-    xv2d   = X.v.x * ones(size( X.v.y))'
-    yv2d   = ones(size( X.v.x)) * X.v.y'
 
     # Select deviatoric rheology
     if DevRheo == :Elastic
@@ -283,13 +204,12 @@ function MainSource()
     ∂η∂y =  ones(2Nc.x+3, 2Nc.y+3)
     hx   = zeros(2Nc.x+3, 2Nc.y+3)
     if adapt_mesh
-        x0     = (x.min + x.max)/2
+        x0     = -5
         m      = y.min
-        Amp    = 2.0
-        σ      = 0.9
+        Amp    = 1.3
+        σ      = 1.0
         σx     = 0.1
         σy     = 0.1
-        ϵ      = 1e-7
         # copy initial y
         x_ini  = copy(xv4)
         y_ini  = copy(yv4)
@@ -304,40 +224,44 @@ function MainSource()
             yv4[i]   =  Mesh_y( X_msh,  Amp, x0, σ, y.max, m, y.min, y.max, σy )
         end
         # Compute forward transformation
-        # params = (Amp=Amp, x0=x0, σ=σ, m=m, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, σx=σx, σy=σy, ϵ=ϵ)
         ∂x     = (∂ξ=zeros(size(yv4)), ∂η = zeros(size(yv4)) )
         ∂y     = (∂ξ=zeros(size(yv4)), ∂η = zeros(size(yv4)) )
-        ComputeForwardTransformation_ini!( ∂x, ∂y, x_ini, y_ini, X_msh, Amp, x0, σ, m, x, y, σx, σy, ϵ)
+        ComputeForwardTransformation_ini!( ∂x, ∂y, x_ini, y_ini, X_msh, Amp, x0, σ, m, x, y, σx, σy)
         # Solve for inverse transformation
         ∂ξ = (∂x=∂ξ∂x, ∂y=∂ξ∂y); ∂η = (∂x=∂η∂x, ∂y=∂η∂y)
-        InverseJacobian!(∂ξ,∂η,∂x,∂y)
+        InverseJacobian!(∂ξ, ∂η, ∂x, ∂y)
         ∂ξ∂x .= ∂ξ.∂x; ∂ξ∂y .= ∂ξ.∂y
         ∂η∂x .= ∂η.∂x; ∂η∂y .= ∂η.∂y
     end
     ∂ξ∂x1 = (
-        i = ∂ξ∂x[3:2:end-2,2:2:end-1],
+        i = ∂ξ∂x[2:2:end-1,3:2:end-2],
         j = ∂ξ∂x[3:2:end-2,2:2:end-1],
         c = ∂ξ∂x[1:2:end-0,1:2:end-0],
         v = ∂ξ∂x[2:2:end-1,2:2:end-1],
     )  
     ∂η∂x1 = (
-        i = ∂η∂x[3:2:end-2,2:2:end-1],
+        i = ∂η∂x[2:2:end-1,3:2:end-2],
         j = ∂η∂x[3:2:end-2,2:2:end-1],
         c = ∂η∂x[1:2:end-0,1:2:end-0],
         v = ∂η∂x[2:2:end-1,2:2:end-1],
     ) 
     ∂ξ∂y1 = (
-        i = ∂ξ∂y[3:2:end-2,2:2:end-1],
+        i = ∂ξ∂y[2:2:end-1,3:2:end-2],
         j = ∂ξ∂y[3:2:end-2,2:2:end-1],
         c = ∂ξ∂y[1:2:end-0,1:2:end-0],
         v = ∂ξ∂y[2:2:end-1,2:2:end-1],
     )  
     ∂η∂y1 = (
-        i = ∂η∂y[3:2:end-2,2:2:end-1],
+        i = ∂η∂y[2:2:end-1,3:2:end-2],
         j = ∂η∂y[3:2:end-2,2:2:end-1],
         c = ∂η∂y[1:2:end-0,1:2:end-0],
         v = ∂η∂y[2:2:end-1,2:2:end-1],
     )
+    xc2d = xv4[1:2:end-0,1:2:end-0] 
+    yc2d = yv4[1:2:end-0,1:2:end-0]
+    xv2d = xv4[2:2:end-1,2:2:end-1] 
+    yv2d = yv4[2:2:end-1,2:2:end-1]
+
     # Time loop
     @views @time for it=1:Nt
 
@@ -385,23 +309,23 @@ function MainSource()
         @.. τ0.j.yz= τ0.j.yz - χs(devj...)*ε̇.j.yz
 
         # Velocity gradient components
-        @.. L.i.xx[:,2:end-1] = ∂ξ∂x1.i * (V.c.x[2:end,2:end-1] - V.c.x[1:end-1,2:end-1])/Δ.ξ + ∂η∂x1.i * (V.v.x[ :     ,2:end] - V.v.x[ :     ,1:end-1])/Δ.η
-        @.. L.j.xx[2:end-1,:] = ∂ξ∂x1.j * (V.v.x[2:end, :     ] - V.v.x[1:end-1, :     ])/Δ.ξ + ∂η∂x1.j * (V.c.x[2:end-1,2:end] - V.c.x[2:end-1,1:end-1])/Δ.η
+        @. L.i.xx[:,2:end-1] = ∂ξ∂x1.i * (V.c.x[2:end,2:end-1] - V.c.x[1:end-1,2:end-1])/Δ.ξ + ∂η∂x1.i * (V.v.x[ :     ,2:end] - V.v.x[ :     ,1:end-1])/Δ.η
+        @. L.j.xx[2:end-1,:] = ∂ξ∂x1.j * (V.v.x[2:end, :     ] - V.v.x[1:end-1, :     ])/Δ.ξ + ∂η∂x1.j * (V.c.x[2:end-1,2:end] - V.c.x[2:end-1,1:end-1])/Δ.η
 
-        @.. L.i.yx[:,2:end-1] = ∂ξ∂x1.i * (V.c.y[2:end,2:end-1] - V.c.y[1:end-1,2:end-1])/Δ.ξ + ∂η∂x1.i * (V.v.y[ :     ,2:end] - V.v.y[ :     ,1:end-1])/Δ.η
-        @.. L.j.yx[2:end-1,:] = ∂ξ∂x1.j * (V.v.y[2:end, :     ] - V.v.y[1:end-1, :     ])/Δ.ξ + ∂η∂x1.j * (V.c.y[2:end-1,2:end] - V.c.y[2:end-1,1:end-1])/Δ.η
+        @. L.i.yx[:,2:end-1] = ∂ξ∂x1.i * (V.c.y[2:end,2:end-1] - V.c.y[1:end-1,2:end-1])/Δ.ξ + ∂η∂x1.i * (V.v.y[ :     ,2:end] - V.v.y[ :     ,1:end-1])/Δ.η
+        @. L.j.yx[2:end-1,:] = ∂ξ∂x1.j * (V.v.y[2:end, :     ] - V.v.y[1:end-1, :     ])/Δ.ξ + ∂η∂x1.j * (V.c.y[2:end-1,2:end] - V.c.y[2:end-1,1:end-1])/Δ.η
 
-        @.. L.i.yy[:,2:end-1] = ∂ξ∂y1.i * (V.c.y[2:end,2:end-1] - V.c.y[1:end-1,2:end-1])/Δ.ξ + ∂η∂y1.i * (V.v.y[ :     ,2:end] - V.v.y[ :     ,1:end-1])/Δ.η
-        @.. L.j.yy[2:end-1,:] = ∂ξ∂y1.j * (V.v.y[2:end, :     ] - V.v.y[1:end-1, :     ])/Δ.ξ + ∂η∂y1.j * (V.c.y[2:end-1,2:end] - V.c.y[2:end-1,1:end-1])/Δ.η
+        @. L.i.yy[:,2:end-1] = ∂ξ∂y1.i * (V.c.y[2:end,2:end-1] - V.c.y[1:end-1,2:end-1])/Δ.ξ + ∂η∂y1.i * (V.v.y[ :     ,2:end] - V.v.y[ :     ,1:end-1])/Δ.η
+        @. L.j.yy[2:end-1,:] = ∂ξ∂y1.j * (V.v.y[2:end, :     ] - V.v.y[1:end-1, :     ])/Δ.ξ + ∂η∂y1.j * (V.c.y[2:end-1,2:end] - V.c.y[2:end-1,1:end-1])/Δ.η
 
-        @.. L.i.xy[:,2:end-1] = ∂ξ∂y1.i * (V.c.x[2:end,2:end-1] - V.c.x[1:end-1,2:end-1])/Δ.ξ + ∂η∂y1.i * (V.v.x[ :,     2:end] - V.v.x[ :     ,1:end-1])/Δ.η
-        @.. L.j.xy[2:end-1,:] = ∂ξ∂y1.j * (V.v.x[2:end, :     ] - V.v.x[1:end-1, :     ])/Δ.ξ + ∂η∂y1.j * (V.c.x[2:end-1,2:end] - V.c.x[2:end-1,1:end-1])/Δ.η
+        @. L.i.xy[:,2:end-1] = ∂ξ∂y1.i * (V.c.x[2:end,2:end-1] - V.c.x[1:end-1,2:end-1])/Δ.ξ + ∂η∂y1.i * (V.v.x[ :,     2:end] - V.v.x[ :     ,1:end-1])/Δ.η
+        @. L.j.xy[2:end-1,:] = ∂ξ∂y1.j * (V.v.x[2:end, :     ] - V.v.x[1:end-1, :     ])/Δ.ξ + ∂η∂y1.j * (V.c.x[2:end-1,2:end] - V.c.x[2:end-1,1:end-1])/Δ.η
 
-        @.. L.i.zy[:,2:end-1] = (V.v.z[ :     ,2:end] - V.v.z[ :     ,1:end-1])/Δ.η
-        @.. L.j.zy[2:end-1,:] = (V.c.z[2:end-1,2:end] - V.c.z[2:end-1,1:end-1])/Δ.η
+        # @. L.i.zy[:,2:end-1] = (V.v.z[ :     ,2:end] - V.v.z[ :     ,1:end-1])/Δ.η
+        # @. L.j.zy[2:end-1,:] = (V.c.z[2:end-1,2:end] - V.c.z[2:end-1,1:end-1])/Δ.η
 
-        @.. L.i.zx[:,2:end-1] = (V.c.z[2:end,2:end-1] - V.c.z[1:end-1,2:end-1])/Δ.ξ
-        @.. L.j.zx[2:end-1,:] = (V.v.z[2:end, :     ] - V.v.z[1:end-1, :     ])/Δ.ξ
+        # @. L.i.zx[:,2:end-1] = (V.c.z[2:end,2:end-1] - V.c.z[1:end-1,2:end-1])/Δ.ξ
+        # @. L.j.zx[2:end-1,:] = (V.v.z[2:end, :     ] - V.v.z[1:end-1, :     ])/Δ.ξ
         
         # Divergence
         @.. ∇V.i   = L.i.xx + L.i.yy
@@ -450,14 +374,6 @@ function MainSource()
         @.. P.i    = θb(voli...)*P0.i - ηb(voli...)*∇V.i 
         @.. P.j    = θb(volj...)*P0.j - ηb(volj...)*∇V.j 
 
-        # @show size(τ.j.xx[3:end-1,2:end-1])
-        # @show size(V.v.x[2:end-1,2:end-1])
-        # @show size(∂ξ∂x1.v[2:end-1,2:end-1])
-
-        # @show size(τ.i.xx[2:end,2:end-1])
-        # @show size(V.c.x[2:end-1,2:end-1])
-        # @show size(∂ξ∂x1.c[2:end-1,2:end-1])
-
         # Linear momentum balance
         @. V.v.x[2:end-1,2:end-1] = (V.v.x[2:end-1,2:end-1] 
                                     + Δt/ρ.v[2:end-1,2:end-1]
@@ -479,25 +395,25 @@ function MainSource()
                                     -  ∂ξ∂y1.v[2:end-1,2:end-1] * (   P.j[3:end-1,2:end-1]-   P.j[2:end-2,2:end-1])/Δ.ξ - ∂η∂y1.v[2:end-1,2:end-1] * (   P.i[2:end-1,3:end-1]-   P.i[2:end-1,2:end-2])/Δ.η 
                                     -  facS.v.y*f_ext.v[2:end-1,2:end-1]))
         
-        @.. V.c.y[2:end-1,2:end-1] = (V.c.y[2:end-1,2:end-1] 
+        @. V.c.y[2:end-1,2:end-1] = (V.c.y[2:end-1,2:end-1] 
                                     + Δt/ρ.c[2:end-1,2:end-1]
                                     *( ∂ξ∂x1.c[2:end-1,2:end-1] * (τ.i.xy[2:end,2:end-1]-τ.i.xy[1:end-1,2:end-1])/Δ.ξ + ∂η∂x1.c[2:end-1,2:end-1] * (τ.j.xy[2:end-1,2:end]-τ.j.xy[2:end-1,1:end-1])/Δ.η
                                     +  ∂ξ∂y1.c[2:end-1,2:end-1] * (τ.i.yy[2:end,2:end-1]-τ.i.yy[1:end-1,2:end-1])/Δ.ξ + ∂η∂y1.c[2:end-1,2:end-1] * (τ.j.yy[2:end-1,2:end]-τ.j.yy[2:end-1,1:end-1])/Δ.η 
-                                    -  ∂ξ∂y1.c[2:end-1,2:end-1] * (   P.i[2:end,2:end-1]-   P.i[1:end-1,2:end-1])/Δ.ξ - ∂η∂y1.c[2:end-1,2:end-1] * (P.j[2:end-1,2:end]-P.j[2:end-1,1:end-1])/Δ.η 
+                                    -  ∂ξ∂y1.c[2:end-1,2:end-1] * (   P.i[2:end,2:end-1]-   P.i[1:end-1,2:end-1])/Δ.ξ - ∂η∂y1.c[2:end-1,2:end-1] * (   P.j[2:end-1,2:end]-   P.j[2:end-1,1:end-1])/Δ.η 
                                     -  facS.c.y*f_ext.c[2:end-1,2:end-1]))   
 
         # the two terms in dPdz and dtauzzdz  cancel in linear elastic case ... but i am not sure with other rheologies so I have left them 
-        @.. V.v.z[2:end-1,2:end-1] = (V.v.z[2:end-1,2:end-1] 
-                                    + Δt/ρ.v[2:end-1,2:end-1]
-                                    *( (τ.j.xz[3:end-1,2:end-1]-τ.j.xz[2:end-2,2:end-1])/Δ.ξ
-                                    +  (τ.i.yz[2:end-1,3:end-1]-τ.i.yz[2:end-1,2:end-2])/Δ.η 
-                                    -  facS.v.z* f_ext.v[2:end-1,2:end-1]))
+        # @.. V.v.z[2:end-1,2:end-1] = (V.v.z[2:end-1,2:end-1] 
+        #                             + Δt/ρ.v[2:end-1,2:end-1]
+        #                             *( (τ.j.xz[3:end-1,2:end-1]-τ.j.xz[2:end-2,2:end-1])/Δ.ξ
+        #                             +  (τ.i.yz[2:end-1,3:end-1]-τ.i.yz[2:end-1,2:end-2])/Δ.η 
+        #                             -  facS.v.z* f_ext.v[2:end-1,2:end-1]))
         
-        @.. V.c.z[2:end-1,2:end-1] = (V.c.z[2:end-1,2:end-1] 
-                                    + Δt/ρ.c[2:end-1,2:end-1]
-                                    *( (τ.i.xz[2:end,2:end-1]-τ.i.xz[1:end-1,2:end-1])/Δ.ξ
-                                    +  (τ.j.yz[2:end-1,2:end]-τ.j.yz[2:end-1,1:end-1])/Δ.η 
-                                    -  facS.c.z*f_ext.c[2:end-1,2:end-1]))   
+        # @.. V.c.z[2:end-1,2:end-1] = (V.c.z[2:end-1,2:end-1] 
+        #                             + Δt/ρ.c[2:end-1,2:end-1]
+        #                             *( (τ.i.xz[2:end,2:end-1]-τ.i.xz[1:end-1,2:end-1])/Δ.ξ
+        #                             +  (τ.j.yz[2:end-1,2:end]-τ.j.yz[2:end-1,1:end-1])/Δ.η 
+        #                             -  facS.c.z*f_ext.c[2:end-1,2:end-1]))   
     
         # Absorbing boundary Cerjean et al. (1985)
         @..  V.v.x  = V.v.x  * bc_filt_V.v 
@@ -524,7 +440,7 @@ function MainSource()
         @..  τ.j.yz = τ.j.yz *  bc_filt_tau.j
 
         # Visualisation
-        if mod(it, Nout)==0 && visu==true
+        if (mod(it, Nout)==0 || it==1) && visu==true
             xv2_1, yv2_1 = xv4[2:2:end-1,2:2:end-1  ], yv4[2:2:end-1,2:2:end-1  ]
             xv2_2, yv2_2 = xv4[1:2:end-0,1:2:end-0  ], yv4[1:2:end-0,1:2:end-0  ]
             xc2_1, yc2_1 = xv4[3:2:end-2,2:2:end-1  ], yv4[3:2:end-2,2:2:end-1  ]
@@ -538,11 +454,11 @@ function MainSource()
     end
 end
 
-function Cerjean2D(X, Lbc, l, Δ)
-    return ((1.0 .- exp.(-(X.x*ones(size(X.y))'.-0*l.x).^2/Lbc.^2))
-         .*(1.0 .- exp.(-(X.x*ones(size(X.y))' .-  l.x).^2/Lbc.^2)) )
-        #  .*(1.0 .- exp.(-(ones(size(X.x))*X.y' .-0*l.y).^2/Lbc.^2)) )
-        #  .*(1.0 .- exp.(-(ones(size(X.x))*X.y' .-  l.y).^2/Lbc.^2)))
+function Cerjean2D(X, Lbc, x, y, Δ)
+    return ((1.0 .- exp.(-(X.x*ones(size(X.y))'.- x.min).^2/Lbc.^2))
+         .*(1.0 .- exp.(-(X.x*ones(size(X.y))' .- x.max).^2/Lbc.^2))
+         .*(1.0 .- exp.(-(ones(size(X.x))*X.y' .- x.min).^2/Lbc.^2)) )
+        #  .*(1.0 .- exp.(-(ones(size(X.x))*X.y' .- y,max).^2/Lbc.^2)))
 end
 
 function Print2Disk( f, path, field, istep; res=4)
