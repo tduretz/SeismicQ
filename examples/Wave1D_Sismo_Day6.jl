@@ -132,7 +132,8 @@ function MainSource()
 
         # Visualisation
         if mod(it, Nout)==0
-            display(plot(xv, V.x, ylim=(-2e-4, 2e-4)))
+            p = plot(xv, V.x,ylim=(-2e-4, 2e-4))
+            display(p)
             sleep(0.1)
         end
 
