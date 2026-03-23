@@ -1,7 +1,8 @@
 module SeismicQ
 
 include("Sources.jl")
-export Ricker
+export Ricker,ExplosiveX,ExplosiveY,Gaussian, 
+       DoubleCoupleX, DoubleCoupleY, RotationalX, RotationalY   
 
 include("Rheology.jl")
 export θs, χs, ηs, θb, χb, ηb
