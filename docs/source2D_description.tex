@@ -1,0 +1,189 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+
+\title{Mathematical Description of Source Types in 2D Elastodynamics}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+We consider source terms introduced in the linear momentum balance:
+
+\begin{equation}
+\rho \frac{\partial \bm{v}}{\partial t}
+\nabla \cdot \bm{\tau} - \nabla P + \bm{f}(\bm{x},t)
+\end{equation}
+
+where $\bm{f}(\bm{x},t)$ is a prescribed body force representing a seismic source.
+
+All sources considered here are constructed from a spatial envelope $G(x,y)$ and a temporal function $R(t)$.
+
+\section{Spatial and Temporal Functions}
+
+\subsection{Gaussian Envelope}
+
+\begin{equation}
+G(x,y) = \exp\left(-\frac{(x-x_0)^2 + (y-y_0)^2}{2\sigma_0^2}\right)
+\end{equation}
+
+\subsection{Ricker Wavelet}
+
+\begin{equation}
+R(t) = \left(1 - 2(\pi f_0 (t-t_0))^2 \right)
+\exp\left(-\pi^2 f_0^2 (t-t_0)^2 \right)
+\end{equation}
+
+\section{Explosive Source (Irrotational)}
+
+\begin{equation}
+\bm{f} = \nabla G , R(t)
+\end{equation}
+
+\begin{equation}
+\frac{\partial G}{\partial x} = -\frac{x-x_0}{\sigma_0^2} G,
+\qquad
+\frac{\partial G}{\partial y} = -\frac{y-y_0}{\sigma_0^2} G
+\end{equation}
+
+\begin{equation}
+f_x = \frac{x-x_0}{\sigma_0^2} G , R(t),
+\qquad
+f_y = \frac{y-y_0}{\sigma_0^2} G , R(t)
+\end{equation}
+
+\section{Pure Rotational Source (Divergence-Free)}
+
+\begin{equation}
+\bm{f} = \nabla^\perp G , R(t)
+= \left(\frac{\partial G}{\partial y}, -\frac{\partial G}{\partial x}\right) R(t)
+\end{equation}
+
+\begin{equation}
+f_x = \frac{y-y_0}{\sigma_0^2} G , R(t),
+\qquad
+f_y = -\frac{x-x_0}{\sigma_0^2} G , R(t)
+\end{equation}
+
+\section{Oriented Rotational Source}
+
+\begin{equation}
+\psi(x,y,t) = x' , G(x,y) , R(t)
+\end{equation}
+
+\begin{equation}
+x' = \cos\theta (x-x_0) + \sin\theta (y-y_0)
+\end{equation}
+
+\begin{equation}
+\bm{f} = \nabla^\perp \psi
+= \left(\frac{\partial \psi}{\partial y}, -\frac{\partial \psi}{\partial x}\right)
+\end{equation}
+
+\section{Double-Couple Source}
+
+\begin{equation}
+\bm{f} = \bm{M}(\theta),\nabla G , R(t)
+\end{equation}
+
+\begin{equation}
+\bm{M}(\theta) = \begin{pmatrix}
+-\sin 2\theta & \cos 2\theta \
+\cos 2\theta & \sin 2\theta
+\end{pmatrix}
+\end{equation}
+
+\begin{equation}
+f_x = \left(M_{xx}\frac{\partial G}{\partial x} + M_{xy}\frac{\partial G}{\partial y}\right) R(t)
+\end{equation}
+
+\begin{equation}
+f_y = \left(M_{yx}\frac{\partial G}{\partial x} + M_{yy}\frac{\partial G}{\partial y}\right) R(t)
+\end{equation}
+
+\section{Qualitative Radiation Patterns}
+
+The explosive source produces an isotropic compressional radiation pattern in the plane, with energy radiated symmetrically away from the source. In an ideal homogeneous medium, this source is dominated by P-wave radiation.
+
+The pure rotational source produces a shear-dominated radiation pattern associated with a localized vortical forcing. In an ideal homogeneous medium, the divergence vanishes and the source primarily excites S waves.
+
+The double-couple source produces the familiar quadrupolar radiation pattern of earthquake seismology. In two dimensions, the radiated amplitudes alternate in sign between adjacent quadrants, with nodal directions separating compressional and dilatational lobes. Rotating the source by an angle $\theta$ rotates the entire pattern accordingly.
+
+For a qualitative sketch, one may think of the three source classes as follows:
+\begin{itemize}
+\item Explosive: circularly symmetric outward or inward pattern.
+\item Rotational: circularly symmetric tangential pattern.
+\item Double couple: four-lobed pattern with alternating polarity.
+\end{itemize}
+
+\section{Extension to a 3D Moment-Tensor Description}
+
+In three dimensions, a general seismic source can be described by a symmetric second-order moment tensor $\bm{M}$, and the source term may be written formally as
+
+\begin{equation}
+\bm{f}(\bm{x},t) = \bm{M} , \nabla G(\bm{x}) , R(t)
+\end{equation}
+
+where $G(\bm{x})$ is now a three-dimensional spatial envelope, for example
+
+\begin{equation}
+G(x,y,z) = \exp\left(-\frac{(x-x_0)^2 + (y-y_0)^2 + (z-z_0)^2}{2\sigma_0^2}\right).
+\end{equation}
+
+The moment tensor can be decomposed into three classical parts:
+\begin{equation}
+\bm{M} = \bm{M}*{\mathrm{iso}} + \bm{M}*{\mathrm{dc}} + \bm{M}*{\mathrm{clvd}}
+\end{equation}
+where $\bm{M}*{\mathrm{iso}}$ is the isotropic part, $\bm{M}*{\mathrm{dc}}$ the double-couple part, and $\bm{M}*{\mathrm{clvd}}$ the compensated linear vector dipole part.
+
+The isotropic part is proportional to the identity tensor,
+\begin{equation}
+\bm{M}_{\mathrm{iso}} = \lambda , \bm{I}
+\end{equation}
+and represents an explosive or implosive source.
+
+A pure double couple is traceless,
+\begin{equation}
+\mathrm{tr}(\bm{M}_{\mathrm{dc}})=0,
+\end{equation}
+and corresponds to a shear dislocation source with no net volume change.
+
+For a fault with unit normal $\bm{n}$ and slip direction $\bm{s}$ satisfying $\bm{n}\cdot\bm{s}=0$, the double-couple moment tensor can be written as
+\begin{equation}
+\bm{M}_{\mathrm{dc}} = M_0 \left( \bm{s}\otimes\bm{n} + \bm{n}\otimes\bm{s} \right)
+\end{equation}
+where $M_0$ is the scalar seismic moment.
+
+In a coordinate system $(x,y,z)$, this yields the familiar six independent tensor entries
+\begin{equation}
+\bm{M} =
+\begin{pmatrix}
+M_{xx} & M_{xy} & M_{xz} \
+M_{xy} & M_{yy} & M_{yz} \
+M_{xz} & M_{yz} & M_{zz}
+\end{pmatrix}.
+\end{equation}
+
+The 2D double-couple formulation introduced earlier may be viewed as the restriction of this general 3D framework to an in-plane source acting in the $(x,y)$ plane. A full 3D implementation would naturally allow one to prescribe fault strike, dip, and rake through the vectors $\bm{n}$ and $\bm{s}$, and therefore to generate arbitrary source orientations and radiation patterns.
+
+\section{Summary}
+
+\begin{center}
+\begin{tabular}{lccc}
+\hline
+Source type & Form & Divergence & Curl \
+\hline
+Explosive & $\nabla G$ & non-zero & zero \
+Rotational & $\nabla^\perp G$ & zero & non-zero \
+Oriented rotational & $\nabla^\perp \psi$ & zero & non-zero \
+Double couple & $\bm{M}\nabla G$ & mixed & mixed \
+\hline
+\end{tabular}
+\end{center}
+
+\end{document}
