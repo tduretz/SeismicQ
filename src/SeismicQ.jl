@@ -16,4 +16,9 @@ export GenAttenuatedRicker
 include("PlotReceiverGather.jl")
 export PlotReceiverGather
 
+include("io_sismo.jl")
+export make_filename
+export write_sismo_file
+export read_sismo_file
+
 end # module SeismicQ
